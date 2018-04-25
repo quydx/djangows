@@ -7,6 +7,7 @@ from django.http import JsonResponse
 import re
 from django.views.decorators.csrf import csrf_exempt
 
+from . import utils
 
 def backup_init(request):
     regex = re.compile('^HTTP_')
@@ -14,7 +15,12 @@ def backup_init(request):
        in request.META.items() if header.startswith('HTTP_'))
     res = {}
     res['type'] = 'init'
-    res['status'] = 'ok'
+    disk = utils.Disk('/dev/sda1')
+    avail_space = disk.get_avail_space()
+    if avail_space > 1:
+        res['status'] = 'ok'
+    else:
+        res['status'] = 'full_disk'
     res['your_header'] = headers
     return JsonResponse(res)
 

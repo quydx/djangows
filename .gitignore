@@ -1,0 +1,13 @@
+*.pyc
+*.db
+*~
+.*
+
+/__pycache__/
+/env/
+/.idea/
+/build/
+/dist/
+
+!.gitignore
+!.travis.yml
