@@ -10,13 +10,19 @@ def main():
     url = "http://{}/rest/api/initalization".format(domain)
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     response = requests.request("GET", url, headers=headers)
-    json_data = json.loads(response.text)
-    if json_data['status'] == "ok":
-        print("available to backup")
-    elif json_data['status'] == "full_disk":
-        print("ERROR: full disk")
+    if response.status_code == 200:
+        json_data = json.loads(response.text)
+        print(json_data)
+        if json_data['status'] == "ok":
+            print("available to backup")
+        elif json_data['status'] == "full_disk":
+            print("ERROR: full disk")
+        else:
+            print("other")
+    elif response.status_code == 401:
+        print("ERROR authentication")
     else:
-        print("other")
+        print(response.status_code)
 
 
 if __name__ == "__main__":
