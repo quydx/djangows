@@ -7,6 +7,8 @@ from django.http import JsonResponse
 import re
 from django.views.decorators.csrf import csrf_exempt
 import os
+from rest_framework.authtoken.models import Token
+
 from . import utils
 
 
@@ -18,12 +20,19 @@ def backup_init(request):
     res['type'] = 'init'
     disk = utils.Disk('/dev/sda1')
     avail_space = disk.get_avail_space()
-    if avail_space > 1:
-        res['status'] = 'ok'
-    else:
-        res['status'] = 'full_disk'
-    res['your_header'] = headers
-    return JsonResponse(res)
+    # print(headers['AUTHORIZATION'])
+    try:
+        token = headers['AUTHORIZATION']
+        Token.objects.get(key=token)
+        if avail_space > 1:
+            res['status'] = 'ok'
+        else:
+            res['status'] = 'full_disk'
+        res['your_header'] = headers
+        return JsonResponse(res)
+    except KeyError:
+        return HttpResponse('Unauthorized', status=401)
+
 
 
 @csrf_exempt
