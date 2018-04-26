@@ -6,8 +6,9 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 import re
 from django.views.decorators.csrf import csrf_exempt
-
+import os
 from . import utils
+
 
 def backup_init(request):
     regex = re.compile('^HTTP_')
@@ -28,9 +29,17 @@ def backup_init(request):
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
-        received_json_data = json.loads(request.body)
-        print(received_json_data)
-        return JsonResponse(received_json_data)
+        data = json.loads(request.body)
+        path = data['path']
+        if data['type'] == 'folder':
+            if not os.path.isdir(path):
+                backup_folder = 'somefolder'
+                # os.mkdir(backup_folder + path)
+                print('backupfolder: ' + backup_folder + '/' + path)
+        elif data['type'] == 'file':
+            pass
+
+        return JsonResponse(data)
     else:
         return JsonResponse({"status": "FAILED", "messages": "No data"})
 
