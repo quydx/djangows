@@ -8,7 +8,8 @@ import re
 from django.views.decorators.csrf import csrf_exempt
 import os
 from rest_framework.authtoken.models import Token
-
+from pprint import pprint
+import datetime
 from . import utils
 
 
@@ -18,13 +19,16 @@ def backup_init(request):
        in request.META.items() if header.startswith('HTTP_'))
     res = {}
     res['type'] = 'init'
-    disk = utils.Disk('/dev/sda1')
-    avail_space = disk.get_avail_space()
-    # print(headers['AUTHORIZATION'])
+    pprint(headers)
+    # disk = utils.Disk('/dev/sda1')
+    # avail_space = disk.get_avail_space()
+    print(headers['AUTHORIZATION'])
+    avail_space = 2
     try:
         token = headers['AUTHORIZATION']
-        Token.objects.get(key=token)
-        if avail_space > 1:
+        tk = Token.objects.get(key=token)
+        pprint(tk)
+        if avail_space > 1 and tk:
             res['status'] = 'ok'
         else:
             res['status'] = 'full_disk'
@@ -34,19 +38,25 @@ def backup_init(request):
         return HttpResponse('Unauthorized', status=401)
 
 
-
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
         data = json.loads(request.body)
+        token = data['token']
+        tk_obj = Token.objects.get(key=token)
+        user = tk_obj.user
+        pprint('user = ' + user.username)
+        now = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+        folder_name = str(user.username + now)
+        print(folder_name)
         path = data['path']
         if data['type'] == 'folder':
             if not os.path.isdir(path):
-                backup_folder = 'somefolder'
                 # os.mkdir(backup_folder + path)
-                print('backupfolder: ' + backup_folder + '/' + path)
+                print('backupfolder: ' + folder_name + '/' + path)
+
         elif data['type'] == 'file':
-            pass
+            # file_attrs = data['file_attrs']
 
         return JsonResponse(data)
     else:
