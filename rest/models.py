@@ -1,6 +1,18 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 # Create your models here.
+
+
+class Backup(models.Model):
+    date = models.DateTimeField()
+    store_path = models.CharField(max_length=1024)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return "%s-%s" % (self.user, self.date)
 
 
 class FileObj(models.Model):
@@ -13,6 +25,11 @@ class FileObj(models.Model):
 class File(models.Model):
     name = models.CharField(max_length=256)
     file_system = models.ForeignKey('FileObj', on_delete=models.CASCADE)
+    backup = models.ForeignKey(
+        'Backup',
+        on_delete=models.CASCADE,
+        default=None
+    )
 
     def __str__(self):
         return "%s" % self.name

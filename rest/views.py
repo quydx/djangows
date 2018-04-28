@@ -57,6 +57,7 @@ def process_metadata(request):
 
         elif data['type'] == 'file':
             # file_attrs = data['file_attrs']
+            pass
 
         return JsonResponse(data)
     else:
