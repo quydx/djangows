@@ -82,7 +82,7 @@ DATABASES = {
         'OPTIONS': {},
         'NAME': 'webservice',
         'USER': 'root',
-        'PASSWORD': '12345',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': ''
     }
