@@ -30,7 +30,21 @@ class FileDir(object):
         """
             Return dict of metadata
         """
-        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path), 'attr': os.stat(self.path)}
+        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path)}
+        stat = os.stat(self.path)
+        attr = {}
+        attr['access_time'] = stat.st_atime  # access time
+        attr['modify_time'] = stat.st_mtime  # modify time
+        attr['create_time'] = stat.st_ctime  # create time
+        attr['uid'] = stat.st_uid            # user ID
+        attr['gid'] = stat.st_gid            # group ID
+        attr['size'] = stat.st_size          # size
+        attr['nlink'] = stat.st_nlink        # number of hard links
+        attr['inode'] = stat.st_ino          # inode number
+        attr['device'] = stat.st_dev         # device inode resides on.
+        attr['mode'] = stat.st_mode          # inode protection mode
+
+        data['attr'] = attr
         if os.path.isdir(self.path):
             data['type'] = "directory"
 
