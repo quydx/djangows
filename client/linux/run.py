@@ -7,7 +7,7 @@ config = utils.get_config("client.conf")
 domain = config['AUTH']['domain']
 token = config['AUTH']['token']
 headers = {'Content-Type': 'application/json;', 'Authorization': token}
-path = "/home/locvu"
+path = "/home/locvu/openvpn-ca"
 
 
 def main():
@@ -17,7 +17,8 @@ def main():
         print(json_data)
         if json_data['status'] == "ok":
             print("available to backup")
-            send_metadata(path)
+            backup_id = json_data['backup_id']
+            send_metadata(path, backup_id)
 
         elif json_data['status'] == "full_disk":
             print("ERROR: full disk")
@@ -36,16 +37,24 @@ def init_backup():
     return response
 
 
-def send_metadata(path):
+def send_metadata(path, backup_id):
+    print(path)
     tree = utils.FileDir(path)
     url = "http://{}/rest/api/metadata".format(domain)
     payload = tree.get_metadata()
-    print(payload)
-    response = requests.request("POST", url, data=payload, headers=headers)
+    payload["backup_id"] = backup_id
+    data = str(payload).replace("'", '"')
+    print(data)
+    response = requests.request("POST", url, data=data, headers=headers)
     print(response.status_code)
     if os.path.isdir(path):
-        send_metadata((os.path.join(path, x)) for x in os.listdir(path))
+        for x in os.listdir(path):
+            send_metadata(os.path.join(path, x), backup_id)
     return
+
+
+def send_data(path, block_index):
+    pass
 
 
 if __name__ == "__main__":

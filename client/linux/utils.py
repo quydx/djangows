@@ -31,6 +31,14 @@ class FileDir(object):
             Return dict of metadata
         """
         data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path)}
+        if os.path.islink(self.path):
+            real_path = os.path.realpath(self.path)
+            data['type'] = "symlink"
+            data['real_path'] = real_path
+            if os.path.exists(real_path):
+                data['checksum'] = md5(real_path)
+            return data
+
         stat = os.stat(self.path)
         attr = {}
         attr['access_time'] = stat.st_atime  # access time
@@ -47,13 +55,6 @@ class FileDir(object):
         data['attr'] = attr
         if os.path.isdir(self.path):
             data['type'] = "directory"
-
-        elif os.path.islink(self.path):
-            real_path = os.path.realpath(self.path)
-            data['type'] = "symlink"
-            data['real_path'] = real_path
-            if os.path.exists(real_path):
-                data['checksum'] = md5(real_path)
         elif os.path.isfile(self.path):
             data['type'] = "file"
             data['checksum'] = self.list_checksum()

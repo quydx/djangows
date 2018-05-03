@@ -13,7 +13,7 @@ from pprint import pprint
 import datetime
 from . import utils
 
-STORE_BACKUP_PLACE = "/opt/backup"
+STORE_BACKUP_PLACE = "/home/locvu/backup"
 
 
 def backup_init(request):
@@ -24,45 +24,59 @@ def backup_init(request):
     res['type'] = 'init'
     # disk = utils.Disk('/dev/sda1')
     # avail_space = disk.get_avail_space()
-    print(headers['AUTHORIZATION'])
+
     avail_space = 2
-    token = headers['AUTHORIZATION']
-    tk_obj = Token.objects.get(key=token)
-    user = tk_obj.user
-    pass_backups = user.backup_set.all()
-    res['type'] = 'full' if not pass_backups else 'increament'
-    if not user:
+    try:
+        token = headers['AUTHORIZATION']
+        tk_obj = Token.objects.get(key=token)
+        user = tk_obj.user
+
+        if avail_space > 1:
+            res['status'] = 'ok'
+
+            # create repo 
+            user = tk_obj.user
+            now = datetime.datetime.now()
+            repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
+            store_path = "%s/%s" % (STORE_BACKUP_PLACE, repo_name)
+            backup = Backup(user=user, date=now, store_path=store_path)
+            backup.save()
+
+            if not os.path.isdir(store_path):
+                os.mkdir(store_path)
+
+            res['backup_id'] = backup.id
+        else:
+            res['status'] = 'full_disk'
+        return JsonResponse(res)
+    except KeyError:
         return HttpResponse('Unauthorized', status=401)
-    if avail_space > 1:
-        res['status'] = 'ok'
-    else:
-        res['status'] = 'full_disk'
-    return JsonResponse(res)
 
 
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
+        body = request.body.decode("utf-8")  # convert byte to string 
+        print(body)  
+        data = json.loads(body)
+        # data2 = request.body
+        print(data["name"])
+        regex = re.compile('^HTTP_')
+        headers = dict((regex.sub('', header), value) for (header, value)
+                   in request.META.items() if header.startswith('HTTP_'))
         # create folder backup, save info into db
-        tk_obj = Token.objects.get(key=data['token'])
-        user = tk_obj.user
-        now = datetime.datetime.now()
-        folder_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
-        store_path = "%s/%s" % (STORE_BACKUP_PLACE, folder_name)
-        backup = Backup(user=user, date=now, store_path=store_path)
-        backup.save()
-        if not os.path.isdir(store_path):
-            os.mkdir(store_path)
-
+        token = headers['AUTHORIZATION']
+        tk_obj = Token.objects.get(key=token)
+       
+        repo_path = Backup.objects.get(id= data['backup_id']).store_path
         # process each metadata
-        if data['type'] == 'folder':
-            if not os.path.isdir(data['path']):
-                # os.mkdir(backup_folder + path)
-                print('backupfolder: ' + folder_name + '/' + data['path'])
-
+        path = repo_path + data['path']
+        print(path)
+        if data['type'] == 'directory':
+            if not os.path.isdir(path):
+                os.makedirs(path, exist_ok=True)    # make directory recusive
         elif data['type'] == 'file':
-            # file_attrs = data['file_attrs']
+            print(path)
             pass
 
         return JsonResponse(data)
