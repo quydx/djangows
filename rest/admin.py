@@ -4,7 +4,7 @@ from django.contrib import admin
 
 from .models import *
 
-admin.site.register(FileObj)
+admin.site.register(FileSys)
 admin.site.register(File)
 admin.site.register(Attr)
 admin.site.register(AttrValue)

@@ -1,6 +1,7 @@
 import os
 import hashlib
 import configparser
+import psutil
 
 
 def get_config(config_file):
@@ -26,11 +27,27 @@ class FileDir(object):
         self.path = path
         self.block_size = int(config['FILE']['block_size'])
 
+    def get_fs_type(self):
+        partition = {}
+        for part in psutil.disk_partitions():
+            partition[part.mountpoint] = part.fstype
+        if self.path in partition:
+            return partition[self.path]
+        splitpath = self.path.split(os.sep)  
+        for i in range(len(splitpath),0,-1):
+            path = os.sep.join(splitpath[:i]) + os.sep
+            if path in partition:
+                return partition[path]
+            path = os.sep.join(splitpath[:i])
+            if path in partition:
+                return partition[path]
+        return "unknown"
+        
     def get_metadata(self):
         """
             Return dict of metadata
         """
-        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path)}
+        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path), 'fs': self.get_fs_type(), 'attr':{}}
         if os.path.islink(self.path):
             real_path = os.path.realpath(self.path)
             data['type'] = "symlink"
@@ -58,8 +75,6 @@ class FileDir(object):
         elif os.path.isfile(self.path):
             data['type'] = "file"
             data['checksum'] = self.list_checksum()
-        elif os.path.ismount(self.path):
-            data['type'] = "mount"
         else:
             raise TypeError("Type of object")
         return data

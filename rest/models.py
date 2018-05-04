@@ -15,7 +15,7 @@ class Backup(models.Model):
         return "%s-%s" % (self.user, self.date)
 
 
-class FileObj(models.Model):
+class FileSys(models.Model):
     file_system = models.CharField(max_length=256)
 
     def __str__(self):
@@ -24,7 +24,9 @@ class FileObj(models.Model):
 
 class File(models.Model):
     name = models.CharField(max_length=256)
-    file_system = models.ForeignKey('FileObj', on_delete=models.CASCADE)
+    type_file = models.CharField(max_length=20)
+    path = models.CharField(max_length=1024)
+    file_system = models.ForeignKey('FileSys', on_delete=models.CASCADE)
     backup = models.ForeignKey(
         'Backup',
         on_delete=models.CASCADE,
@@ -37,15 +39,14 @@ class File(models.Model):
 
 class Attr(models.Model):
     name = models.CharField(max_length=256)
-    type = models.IntegerField(default=0)
-    obj = models.ForeignKey(
-        'FileObj',
+    file_sys = models.ForeignKey(
+        'FileSys',
         on_delete=models.CASCADE,
     )
-    type = models.IntegerField(default=0)
+    type_attr = models.IntegerField(default=0)
 
     def __str__(self):
-        return "%s" % self.name
+        return "{0} - {1}".format(self.name, self.file_sys)
 
 
 class AttrValue(models.Model):
@@ -53,13 +54,12 @@ class AttrValue(models.Model):
         'Attr',
         on_delete=models.CASCADE
     )
-    value = models.CharField(max_length=256)
-    file = models.ForeignKey(
+    file_object = models.ForeignKey(
         'File',
         on_delete=models.CASCADE
     )
     value = models.CharField(max_length=256)
 
     def __str__(self):
-        return "%s" % self.id
+        return "{1} {0}".format(self.attr, self.file_object) 
 

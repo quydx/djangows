@@ -64,22 +64,36 @@ def process_metadata(request):
         regex = re.compile('^HTTP_')
         headers = dict((regex.sub('', header), value) for (header, value)
                    in request.META.items() if header.startswith('HTTP_'))
-        # create folder backup, save info into db
-        token = headers['AUTHORIZATION']
-        tk_obj = Token.objects.get(key=token)
-       
-        repo_path = Backup.objects.get(id= data['backup_id']).store_path
-        # process each metadata
-        path = repo_path + data['path']
-        print(path)
-        if data['type'] == 'directory':
-            if not os.path.isdir(path):
-                os.makedirs(path, exist_ok=True)    # make directory recusive
-        elif data['type'] == 'file':
-            print(path)
-            pass
+        try:            
+            # create folder backup, save info into db
+            token = headers['AUTHORIZATION']
+            tk_obj = Token.objects.get(key=token)
+            current_backup = Backup.objects.get(id= data['backup_id'])
+            repo_path = current_backup.store_path
 
-        return JsonResponse(data)
+            # process each metadata
+            path = repo_path + data['path']
+            print(path)
+            
+            fs = FileSys.objects.get(file_system=data["fs"])
+
+            file_object = File(name=data["name"], type_file=data["type"], path=data["path"], file_system=fs, backup=current_backup)
+            file_object.save()
+            
+            for attribute in data['attr']:
+                attr = Attr.objects.get(name=attribute, file_sys=fs)
+                attr_value = AttrValue(attr=attr, value=data['attr'][attribute], file_object=file_object)
+                attr_value.save()
+
+            if data['type'] == 'directory':
+                if not os.path.isdir(path):
+                    os.makedirs(path, exist_ok=True)    # make directory recusive
+            elif data['type'] == 'file':
+                print(path)
+                pass
+            return JsonResponse(data)
+        except KeyError:
+            return HttpResponse('Unauthorized', status=401)    
     else:
         return JsonResponse({"status": "FAILED", "messages": "No data"})
 
