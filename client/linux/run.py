@@ -3,22 +3,24 @@ import requests
 import json
 import utils
 
-config = utils.get_config("client.conf")
-domain = config['AUTH']['domain']
-token = config['AUTH']['token']
-headers = {'Content-Type': 'application/json;', 'Authorization': token}
-path = "/home/locvu/openvpn-ca"
+# config = utils.get_config("client.conf")
 
+def main(args):
+    config = utils.get_config(args.config_file)
+    domain = config['AUTH']['domain']
+    token = config['AUTH']['token']
+    headers = {'Content-Type': 'application/json;', 'Authorization': token}
+    # path = "/home/locvu/openvpn-ca"
+    path = args.repo_target
+    init = init_backup(domain, headers)
 
-def main():
-    init = init_backup()
     if init.status_code == 200:
         json_data = json.loads(init.text)
         print(json_data)
         if json_data['status'] == "ok":
             print("available to backup")
             backup_id = json_data['backup_id']
-            send_metadata(path, backup_id)
+            send_metadata(domain, headers, path, backup_id)
 
         elif json_data['status'] == "full_disk":
             print("ERROR: full disk")
@@ -31,13 +33,13 @@ def main():
         print(init.status_code)
 
 
-def init_backup():
+def init_backup(domain, headers):
     url = "http://{}/rest/api/initialization".format(domain)
     response = requests.request("GET", url, headers=headers)
     return response
 
 
-def send_metadata(path, backup_id):
+def send_metadata(domain, headers, path, backup_id):
     print(path)
     tree = utils.FileDir(path)
     url = "http://{}/rest/api/metadata".format(domain)
@@ -49,13 +51,13 @@ def send_metadata(path, backup_id):
     print(response.status_code)
     if os.path.isdir(path):
         for x in os.listdir(path):
-            send_metadata(os.path.join(path, x), backup_id)
+            send_metadata(domain, headers, os.path.join(path, x), backup_id)
     return
 
 
-def send_data(path, block_index):
+def send_data(domain, headers, path, block_index):
     pass
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main(args)

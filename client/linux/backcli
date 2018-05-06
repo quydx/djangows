@@ -1,0 +1,13 @@
+#!/home/locvu/backup_server/env/bin/python
+from run import main
+import argparse
+
+
+parser = argparse.ArgumentParser(description="Run the Backup CLI")
+parser.add_argument('--config-file', dest='config_file', default='client.conf',
+                    help='Path of config file')
+parser.add_argument('--target', dest='repo_target', required=True,
+                    help='Path of directory need to backup')                    
+args = parser.parse_args()
+
+main(args)
