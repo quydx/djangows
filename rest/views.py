@@ -1,17 +1,23 @@
-from django.shortcuts import render
-
-# Create your views here.
-from .models import *
+import os
+import re
+import datetime
 import json
+from pprint import pprint
+
+from django.shortcuts import render
 from django.http import HttpResponse
 from django.http import JsonResponse
-import re
 from django.views.decorators.csrf import csrf_exempt
-import os
+
 from rest_framework.authtoken.models import Token
-from pprint import pprint
-import datetime
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+
 from . import utils
+from .models import Backup, File, FileSys, Data, Attr, AttrValue
+from .serializers import DataSerializer
 
 STORE_BACKUP_PLACE = "/home/locvu/backup"
 
@@ -28,6 +34,7 @@ def backup_init(request):
     avail_space = 2
     try:
         token = headers['AUTHORIZATION']
+        print(token)
         tk_obj = Token.objects.get(key=token)
         user = tk_obj.user
 
@@ -84,14 +91,25 @@ def process_metadata(request):
                 attr = Attr.objects.get(name=attribute, file_sys=fs)
                 attr_value = AttrValue(attr=attr, value=data['attr'][attribute], file_object=file_object)
                 attr_value.save()
-
+            response_data = {}
             if data['type'] == 'directory':
                 if not os.path.isdir(path):
                     os.makedirs(path, exist_ok=True)    # make directory recusive
             elif data['type'] == 'file':
                 print(path)
-                pass
-            return JsonResponse(data)
+                
+                response_data['file_object'] = file_object.pk
+                blk_list = []
+                for block_id in range(len(data['checksum'])):
+                    # if checksum in list_checksum:  # hardlink
+                    #  
+                    # else:                         # receive data
+                        blk_list.append(block_id)
+                response_data['blocks'] = blk_list
+                response_data['checksum'] = data['checksum']
+                print('RESPONSE DATA')
+                print(response_data)
+            return JsonResponse(response_data)
         except KeyError:
             return HttpResponse('Unauthorized', status=401)    
     else:
@@ -105,3 +123,21 @@ def process_data(request):
         return JsonResponse(received_json_data)
     else:
         return JsonResponse({"status": "FAILED", "messages": "No data"})
+
+
+class DataView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    def post(self, request, *args, **kwargs):
+        data = request.data 
+        print(request.data)
+        # data['file_object'] = File.objects.get(pk=data['file_pk'])
+        # data.pop('file_pk', None)
+        print(data)
+        
+        # return Response("ok", status=status.HTTP_201_CREATED) 
+        data_serializer = DataSerializer(data=data)
+        if data_serializer.is_valid():
+            data_serializer.save()
+            return Response(data_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

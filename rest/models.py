@@ -63,3 +63,12 @@ class AttrValue(models.Model):
     def __str__(self):
         return "{1} {0}".format(self.attr, self.file_object) 
 
+
+class Data(models.Model):
+    block_data = models.FileField(blank=False, null=False)
+    block_id = models.IntegerField(default=0)
+    checksum = models.CharField(max_length=256)
+    file_object = models.ForeignKey('File', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "{} {}".format(self.file_object, self.block_id)

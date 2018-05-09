@@ -21,11 +21,22 @@ def md5(real_path):
     return hash_md5.hexdigest()
 
 
+def read_in_blocks(file_object, block_size, blk_list):
+    count = 0
+    while True:
+        data = file_object.read(block_size)
+        if not data:
+            break
+        if count in blk_list:
+            yield (data, count)
+        count += 1 
+
+
 class FileDir(object):
     def __init__(self, path):
-        config = get_config("client.conf")
+        
         self.path = path
-        self.block_size = int(config['FILE']['block_size'])
+        
 
     def get_fs_type(self):
         partition = {}
@@ -86,9 +97,13 @@ class FileDir(object):
         hash_md5 = hashlib.md5()
         checksum_list = []
         with open(self.path, 'rb') as file:
-            chunk = file.read(self.block_size)
+            chunk = file.read(block_size)
             while len(chunk) > 0:
                 hash_md5.update(chunk)
                 checksum_list.append(hash_md5.hexdigest())
-                chunk = file.read(self.block_size)
+                chunk = file.read(block_size)
         return checksum_list
+
+
+config = get_config("client.conf")
+block_size = int(config['FILE']['block_size'])
