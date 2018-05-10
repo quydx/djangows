@@ -1,7 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 # Create your models here.
+from django.core.files.storage import FileSystemStorage
+from djangorest import settings
 
+
+upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
 
 class Backup(models.Model):
     date = models.DateTimeField()
@@ -65,7 +69,7 @@ class AttrValue(models.Model):
 
 
 class FileData(models.Model):
-    block_data = models.FileField(blank=False, null=False)
+    block_data = models.FileField(storage=upload_storage, blank=False, null=False)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
     file_object = models.ForeignKey('File', on_delete=models.CASCADE)

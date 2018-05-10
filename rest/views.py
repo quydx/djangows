@@ -87,11 +87,8 @@ def checksum_pre_version(user, path):
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
-        body = request.body.decode("utf-8")  # convert byte to string 
-        # print(body)  
+        body = request.body.decode("utf-8")  # convert byte to string  
         request_data = json.loads(body)
-        # data2 = request.body
-        print(request_data["name"])
         regex = re.compile('^HTTP_')
         headers = dict((regex.sub('', header), value) for (header, value)
                    in request.META.items() if header.startswith('HTTP_'))
@@ -121,17 +118,6 @@ def process_metadata(request):
                 if not os.path.isdir(path):
                     os.makedirs(path, exist_ok=True)    # make directory recusive
             elif request_data['type'] == 'file' and request_data['checksum'] != []:
-                # data sample
-                # request_data = {"type": "file", 
-                #       "attr": {"modify_time": 1515229034.767711, "create_time": 1521355529.0271544, 
-                #               "nlink": 1, "mode": 33279, "device": 2050, "uid": 1000, "size": 8416, 
-                #               "access_time": 1525882399.384772, "inode": 6031529, "gid": 1000}, 
-                #       "fs": "ext4", 
-                #       "path": "/home/locvu/openvpn-ca/openssl-0.9.8.cnf", 
-                #       "name": "openssl-0.9.8.cnf", 
-                #       "backup_id": 80, 
-                #       "checksum": ["3cedbef3e8123e04dcfa9076ffd5f95a", "90fa3f358103a5d183fa54d5b07940e0", "a3952428d4a238112b2dd10a415af94c", "1f1825604f7d9ec6f84fa74053c91887", "0a9f6ee45eaa472c55ad24755c0f165d", "2bb875ee749c8cf6636845a418401c6f", "5d8272e3a4c3ad8bbb5348adb67dd7a9", "facfbba53963b8e44b06e9edf9c1764d", "14600c3f5d351c2d5aa3ecd4ee139238"]}
-                
                 response_data['file_object'] = file_object.pk
                 
                 blk_list = []
@@ -139,7 +125,6 @@ def process_metadata(request):
                 block_id = 0
                 
                 tupple_id_checksum = checksum_pre_version(user, request_data['path'])    # (id, checksum)
-                print(response_data)
                 for checksum in request_data['checksum']:
                     if tupple_id_checksum:
                         for data_id, cks in tupple_id_checksum:  # block data existed
@@ -155,13 +140,11 @@ def process_metadata(request):
                     else:   # the first version 
                         blk_list = list(range(len(request_data['checksum'])))
                         cks_list = request_data['checksum']
-                        
+
                 response_data['blocks'] = blk_list
                 response_data['checksum'] = cks_list
 
             response_data['status'] = "SUCCESS" 
-            print("RESPONSE DAAAAAD")   
-            print(response_data)
             return JsonResponse(response_data)
         except KeyError:
             return HttpResponse('Unauthorized', status=401)    
@@ -182,12 +165,6 @@ class DataView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     def post(self, request, *args, **kwargs):
         data = request.data 
-        print(request.data)
-        # data['file_object'] = File.objects.get(pk=data['file_pk'])
-        # data.pop('file_pk', None)
-        print(data)
-        
-        # return Response("ok", status=status.HTTP_201_CREATED) 
         data_serializer = DataSerializer(data=data)
         if data_serializer.is_valid():
             data_serializer.save()

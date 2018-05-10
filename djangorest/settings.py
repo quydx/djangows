@@ -128,4 +128,6 @@ USE_TZ = False
 STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = '/home/locvu/backup/'
+
+UPLOAD_ROOT = '/home/locvu/backup/'
