@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Data
+from .models import FileData
 
 class DataSerializer(serializers.ModelSerializer):
   class Meta():
-    model = Data
+    model = FileData
     fields = ('block_data', 'block_id', 'checksum', 'file_object')

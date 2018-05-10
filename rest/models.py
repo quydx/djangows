@@ -64,7 +64,7 @@ class AttrValue(models.Model):
         return "{1} {0}".format(self.attr, self.file_object) 
 
 
-class Data(models.Model):
+class FileData(models.Model):
     block_data = models.FileField(blank=False, null=False)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)

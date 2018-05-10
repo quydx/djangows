@@ -40,20 +40,18 @@ def init_backup(domain, headers):
 
 
 def send_metadata(domain, headers, path, backup_id):
-    # print(path)
     tree = utils.FileDir(path)
     url = "http://{}/rest/api/metadata/".format(domain)
     payload = tree.get_metadata()
     payload["backup_id"] = backup_id
     data = str(payload).replace("'", '"')
-    # print("DATA")
-    # print(data)
+    print('SEND METADATA: ')
+    print(data)
     response = requests.request("POST", url, data=data, headers=headers)
+    print('RECEIVED: ')
     print(response.json())
     response_data = response.json()
     if 'blocks' in response_data:
-        # for block_index in response_data['blocks']:
-        print("\n start to send data")
         send_data(domain, headers, path, response_data['blocks'], response_data['file_object'], response_data['checksum'])
 
     if os.path.isdir(path):
@@ -69,8 +67,11 @@ def send_data(domain, headers, path, blocks, file_object, checksum):
     for chunk, block_id in utils.read_in_blocks(fin, utils.block_size, blocks):
         files = {'block_data': chunk}
         values = {'block_id' : block_id, 'file_object': file_object, 'checksum': checksum[count]}
+        print("-- SEND DATA:")
+        print(checksum[count])
         count += 1
         response = requests.post(url, files=files, data=values)
+        print('-- RESPONSE: ')
         print(response.text)
 
 # if __name__ == "__main__":
