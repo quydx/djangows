@@ -4,8 +4,23 @@ from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from djangorest import settings
 
-
+#  
 upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
+
+def get_upload_path(instance):
+        """
+        Returns the upload path for block_data
+        """
+        repo_name = instance.file_object.path
+        print('REPO NONONO')
+        print(repo_name)
+        return "{}/{}".format(settings.UPLOAD_ROOT, repo_name)
+        #  /home/locvu/backup/locvu/locvu2018_05_11_09_56/openvpn/ca/
+
+        # filename = filename.split('.')
+        # extension = filename.pop()
+        # name = ''.join(filename)
+        # return "documents/%s/%s.%s" % (self.post.pk, slugify(name), extension)
 
 class Backup(models.Model):
     date = models.DateTimeField()
@@ -69,6 +84,7 @@ class AttrValue(models.Model):
 
 
 class FileData(models.Model):
+    
     block_data = models.FileField(storage=upload_storage, blank=False, null=False)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
@@ -76,3 +92,6 @@ class FileData(models.Model):
 
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)
+
+    
+

@@ -18,9 +18,7 @@ from rest_framework import status
 from . import utils
 from .models import Backup, File, FileSys, FileData, Attr, AttrValue
 from .serializers import DataSerializer
-
-STORE_BACKUP_PLACE = "/home/locvu/backup"
-
+from djangorest import settings
 
 def backup_init(request):
     regex = re.compile('^HTTP_')
@@ -45,7 +43,7 @@ def backup_init(request):
             user = tk_obj.user
             now = datetime.datetime.now()
             repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
-            store_path = "%s/%s" % (STORE_BACKUP_PLACE, repo_name)
+            store_path = "{}/{}".format(settings.UPLOAD_ROOT, repo_name)
             backup = Backup(user=user, date=now, store_path=store_path)
             backup.save()
 

@@ -7,7 +7,7 @@ djangows/settings.py
 **/migrations/
 **/__pycache__/
 /env/
-/.idea/
+.idea/
 /.vscode/
 /build/
 /dist/
