@@ -20,6 +20,9 @@ def get_upload_path(instance):
         # filename = filename.split('.')
         # extension = filename.pop()
         # name = ''.join(filename)
+
+
+        
         # return "documents/%s/%s.%s" % (self.post.pk, slugify(name), extension)
 
 class Backup(models.Model):
@@ -84,14 +87,21 @@ class AttrValue(models.Model):
 
 
 class FileData(models.Model):
-    
-    block_data = models.FileField(storage=upload_storage, blank=False, null=False)
+    file_object = models.ForeignKey('File', on_delete=models.CASCADE)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
-    file_object = models.ForeignKey('File', on_delete=models.CASCADE)
-
+    block_data = models.FileField(storage=upload_storage, blank=False, null=False)
+     
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)
 
-    
+    def save(self):
+        instance = super(FileData, self).save(commit=False)
+        f = File.object.get(pk=self.file_object) 
+        print(f.path)
+        store_path = settings.UPLOAD_ROOT + f.path
+        upload_storage = FileSystemStorage(location=store_path)
+        self.block_data = models.FileField(storage=store_path, blank=False, null=False)
+        instance.save()
+        return instance
 

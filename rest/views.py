@@ -43,7 +43,7 @@ def backup_init(request):
             user = tk_obj.user
             now = datetime.datetime.now()
             repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
-            store_path = "{}/{}".format(settings.UPLOAD_ROOT, repo_name)
+            store_path = "{}{}".format(settings.UPLOAD_ROOT, repo_name)
             backup = Backup(user=user, date=now, store_path=store_path)
             backup.save()
 
@@ -169,3 +169,35 @@ class DataView(APIView):
             return Response(data_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def list_backup_info(request, pk=None):
+    if request.method == 'GET':
+      
+        regex = re.compile('^HTTP_')
+        headers = dict((regex.sub('', header), value) for (header, value)
+                    in request.META.items() if header.startswith('HTTP_'))
+
+        try:
+            token = headers['AUTHORIZATION']
+            tk_obj = Token.objects.get(key=token)
+            user = tk_obj.user
+            response_data = {}
+            if pk:
+                try:
+                    backup = Backup.objects.get(user=user, pk=pk)
+                    name = backup.store_path[len(settings.UPLOAD_ROOT):]
+                    response_data = {'pk': backup.pk, 'date': backup.date, 'name':name}
+                except Backup.DoesNotExist:
+                    return HttpResponse('DoesNotExist', status=404)    
+            else:
+                backup = Backup.objects.filter(user=user)
+                values = backup.values('pk', 'date', 'store_path')
+                count = 0 
+                for value in values:
+                    name = value['store_path'][len(settings.UPLOAD_ROOT):]
+                    response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name':name}
+                    count += 1
+            return JsonResponse(response_data)
+        except KeyError:
+            return HttpResponse('Unauthorized', status=401)
