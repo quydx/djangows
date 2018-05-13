@@ -3,27 +3,19 @@ from django.contrib.auth.models import User
 # Create your models here.
 from django.core.files.storage import FileSystemStorage
 from djangorest import settings
-
+import datetime
+import os
 #  
 upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
 
-def get_upload_path(instance):
-        """
-        Returns the upload path for block_data
-        """
-        repo_name = instance.file_object.path
-        print('REPO NONONO')
-        print(repo_name)
-        return "{}/{}".format(settings.UPLOAD_ROOT, repo_name)
-        #  /home/locvu/backup/locvu/locvu2018_05_11_09_56/openvpn/ca/
 
-        # filename = filename.split('.')
-        # extension = filename.pop()
-        # name = ''.join(filename)
+def key_store_upload_to(instance, path):
+    # prepend date to path
+    # print(instance.file_object)
+    # print(instance.file_object.path.rsplit('/', 1)[0])
+    p = '{}/{}'.format(instance.file_object.backup.store_path.rsplit('/', 1)[1], instance.file_object.path)
+    return os.path.join(p)
 
-
-        
-        # return "documents/%s/%s.%s" % (self.post.pk, slugify(name), extension)
 
 class Backup(models.Model):
     date = models.DateTimeField()
@@ -90,18 +82,18 @@ class FileData(models.Model):
     file_object = models.ForeignKey('File', on_delete=models.CASCADE)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
-    block_data = models.FileField(storage=upload_storage, blank=False, null=False)
+    block_data = models.FileField(storage=upload_storage, upload_to=key_store_upload_to, blank=False, null=False)
      
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)
 
-    def save(self):
-        instance = super(FileData, self).save(commit=False)
-        f = File.object.get(pk=self.file_object) 
-        print(f.path)
-        store_path = settings.UPLOAD_ROOT + f.path
-        upload_storage = FileSystemStorage(location=store_path)
-        self.block_data = models.FileField(storage=store_path, blank=False, null=False)
-        instance.save()
-        return instance
+    # def save(self):
+    #     instance = super(FileData, self).save(commit=False)
+    #     f = File.object.get(pk=self.file_object) 
+    #     print(f.path)
+    #     store_path = settings.UPLOAD_ROOT + f.path
+    #     upload_storage = FileSystemStorage(location=store_path)
+    #     self.block_data = models.FileField(storage=store_path, blank=False, null=False)
+    #     instance.save()
+    #     return instance
 
