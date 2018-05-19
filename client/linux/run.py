@@ -3,7 +3,6 @@ import requests
 import json
 import utils
 
-# config = utils.get_config("client.conf")
 
 def main(args):
     config = utils.get_config(args.config_file)
@@ -21,16 +20,14 @@ def main(args):
             print("available to backup")
             backup_id = json_data['backup_id']
             send_metadata(domain, headers, path, backup_id)
-
-        elif json_data['status'] == "full_disk":
-            print("ERROR: full disk")
         else:
             print("other")
     elif init.status_code == 401:
-        print("ERROR authentication")
+        print("[ERROR authentication] : " + init.text)
+    elif init.status_code == 507:
+        print("[ERROR Insufficient Storage] : " + init.text)
     else:
-        print("fail")
-        print(init.status_code)
+        print("[ERROR Unknown] - " + init.status_code)
 
 
 def init_backup(domain, headers):
