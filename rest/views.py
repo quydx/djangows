@@ -213,11 +213,34 @@ def restore_init(request, version=None):
 
 @csrf_exempt
 def download_data(request, version=None):
-    if request.method == 'POST':
-        response_data = {"status": "ok"}
-        body = request.body.decode("utf-8")  # convert byte to string
-        print(body)
-        request_data = json.loads(body)
-        print(request_data['addition'])
-        
-        return JsonResponse(response_data)
+    if request.method == 'GET':
+        user = get_user_by_token(request)
+        if version:
+            try:
+                body = request.body.decode("utf-8")  # convert byte to string
+                print(body)
+                request_data = json.loads(body)
+                
+                
+                # data = FileData.objects.get(file_object=f, checksum=checksum)
+                url = url_by_checksum(user, version, request_data['path'], request_data['addition'].values())
+                response_data = request_data
+                print(url)
+                response_data['url'] = url
+                print(response_data)
+                return JsonResponse(response_data)
+            except IndexError:
+                return HttpResponse('Version Does Not Exist', status=404)    
+        else:
+            return HttpResponse("Missing version definite", status=412)
+
+
+def url_by_checksum(user, version, path, list_checksum):
+    backup = Backup.objects.filter(user=user)[int(version)]
+    f = File.objects.get(backup=backup, path=path)
+    datas = FileData.objects.filter(file_object=f, checksum__in=list_checksum)
+    url = {}
+    for data in datas:
+        url[str(data.block_id)] = data.block_data.url
+
+    return url 

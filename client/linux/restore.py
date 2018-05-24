@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import utils
+import urllib.request
 
 
 def main(args):
@@ -35,14 +36,19 @@ def main(args):
                 f = utils.FileDir(value['path'])
                 checksum_list = f.list_checksum()
                 checksum_diff = compare_checksum(value['checksum'], checksum_list)
-                print(checksum_list)
                 print(value['checksum'])
+                checksum_diff['path'] = value['path']
                 print(checksum_diff)
                 data = str(checksum_diff).replace("'", '"')
                 url = "http://{}/rest/api/download_data/{}/".format(domain, version)
-                response = requests.request("POST", url, data=data, headers=headers)
+                response = requests.request("GET", url, data=data, headers=headers)
                 print(response.status_code)
-
+                print(response.json())
+                
+                response_json = response.json()
+                # download block data
+                download_data(domain, response_json['path'], response_json['url'].values())
+                
                 # add attributes
                 add_attribute(value['path'], value['attr'])    
 
@@ -82,3 +88,8 @@ def compare_checksum(list_old, list_new):
     diff_list = {"addition": addtion, "deletion": deletion}
     
     return diff_list
+
+def download_data(domain, path, url_list):
+    base_url = "http://{}".format(domain)
+    for url in url_list:
+        urllib.request.urlretrieve(base_url + url,  '/' + url.split('/', 3)[3])
