@@ -27,7 +27,7 @@ def main(args):
     elif init.status_code == 507:
         print("[ERROR Insufficient Storage] : " + init.text)
     else:
-        print("[ERROR Unknown] - " + init.status_code)
+        print("[ERROR Unknown] - " + str(init.status_code))
 
 
 def init_backup(domain, headers):

@@ -159,6 +159,9 @@ class DataView(APIView):
         else:
             return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def get(self, request, *args, **ksargs):
+        pass
+
 
 def list_backup_info(request, pk=None):
     if request.method == 'GET':
@@ -179,4 +182,42 @@ def list_backup_info(request, pk=None):
                 name = value['store_path'][len(settings.UPLOAD_ROOT):]
                 response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name':name}
                 count += 1
+        return JsonResponse(response_data)
+
+
+def restore_init(request, version=None):
+    if request.method == 'GET':
+        user = get_user_by_token(request)
+        if version:
+            try:
+                path = request.GET.get('path', '')
+                backup = Backup.objects.filter(user=user)[int(version)]
+                files = File.objects.filter(backup=backup, path__startswith=path)
+                if files:
+                    response_data = {}
+                    for f in files: 
+                        attr_set = f.attrvalue_set.all()
+                        attr = {a.attr.name: a.value for a in attr_set}
+                        response_data[f.pk] = {'name': f.name, 'path': f.path, 'type': f.type_file, 'fs': str(f.file_system), 'attr': attr}
+                        if f.type_file == 'file':
+                            response_data[f.pk].update({'checksum': list(f.filedata_set.values_list('checksum', flat=True))})
+                    return JsonResponse(response_data)
+                else:
+                    return HttpResponse('Path Does Not Exist', status=404)
+
+            except IndexError:
+                return HttpResponse('Version Does Not Exist', status=404)    
+        else:
+            return HttpResponse("Missing version definite", status=412)
+            
+
+@csrf_exempt
+def download_data(request, version=None):
+    if request.method == 'POST':
+        response_data = {"status": "ok"}
+        body = request.body.decode("utf-8")  # convert byte to string
+        print(body)
+        request_data = json.loads(body)
+        print(request_data['addition'])
+        
         return JsonResponse(response_data)

@@ -1,18 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import User
-# Create your models here.
 from django.core.files.storage import FileSystemStorage
 from djangorest import settings
 import datetime
 import os
-#  
+
+
 upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
 
 
 def key_store_upload_to(instance, path):
     # prepend date to path
     # print(instance.file_object)
-    # print(instance.file_object.path.rsplit('/', 1)[0])
     p = '{}/{}'.format(instance.file_object.backup.store_path.rsplit('/', 1)[1], instance.file_object.path)
     return os.path.join(p)
 
@@ -86,14 +85,3 @@ class FileData(models.Model):
      
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)
-
-    # def save(self):
-    #     instance = super(FileData, self).save(commit=False)
-    #     f = File.object.get(pk=self.file_object) 
-    #     print(f.path)
-    #     store_path = settings.UPLOAD_ROOT + f.path
-    #     upload_storage = FileSystemStorage(location=store_path)
-    #     self.block_data = models.FileField(storage=store_path, blank=False, null=False)
-    #     instance.save()
-    #     return instance
-
