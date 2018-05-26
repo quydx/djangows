@@ -21,15 +21,27 @@ def md5(real_path):
     return hash_md5.hexdigest()
 
 
-def read_in_blocks(file_object, block_size, blk_list):
-    count = 0
+def read_in_blocks(file_object, blk_list):
+    block_id = 0
     while True:
         data = file_object.read(block_size)
         if not data:
             break
-        if count in blk_list:
-            yield (data, count)
-        count += 1 
+        if block_id in blk_list:
+            yield (data, block_id)
+        block_id += 1 
+    file_object.close()
+
+
+def cutting_blocks(path, blk_list_save):
+    data_save = []
+    file_read = open(path, 'rb')
+    data_save = [item[0] for item in read_in_blocks(file_read, blk_list_save)]
+    
+    file_write = open(path, 'wb')
+    for chunk in data_save:
+        file_write.write(chunk)
+    file_write.close()
 
 
 class FileDir(object):

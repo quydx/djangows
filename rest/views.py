@@ -223,7 +223,7 @@ def download_data(request, version=None):
                 
                 
                 # data = FileData.objects.get(file_object=f, checksum=checksum)
-                url = url_by_checksum(user, version, request_data['path'], request_data['addition'].values())
+                url = url_by_checksum(user, version, request_data['path'], request_data['need'].values())
                 response_data = request_data
                 print(url)
                 response_data['url'] = url
