@@ -64,6 +64,7 @@ def backup_init(request):
 
         res['status'] = 'ok'
         res['backup_id'] = backup.id
+        print(res)
         return JsonResponse(res)    # return 200
     else:
         return HttpResponse('Full disk', status=507)
