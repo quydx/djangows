@@ -2,32 +2,6 @@ import os
 import hashlib
 import configparser
 import psutil
-import subprocess
-
-
-def get_file_acl(path):
-    """ get dict of acl  of a path
-    """
-    acl = dict()
-    getacl = subprocess.call(['which','getfacl'])
-    if getacl == 0:
-        return False
-    else:
-        output = subprocess.check_output(['getfacl', path])
-        lines = output.stdout.decode('utf-8').splitlines()
-        user, group, other = [], [], []
-        for line in lines:
-            acl_item = tuple(line.split('::'))
-            if line.startswith('user'):
-                user.append(acl_item)
-            elif line.startswith('group'):
-                group.append(acl_item)
-            elif line.startswith('other'):
-                other.append(acl_item)
-        acl['user'] = user
-        acl['group'] = group
-        acl['other'] = other
-    return acl
 
 
 def get_config(config_file):
@@ -59,23 +33,18 @@ def read_in_blocks(file_object, blk_list):
     file_object.close()
 
 
-def cutting_blocks(path, blk_list_save):
-    data_save = []
-    file_read = open(path, 'rb')
-    data_save = [item[0] for item in read_in_blocks(file_read, blk_list_save)]
-    
-    file_write = open(path, 'wb')
-    for chunk in data_save:
-        file_write.write(chunk)
-    file_write.close()
-
+def convert_linux_path(win_path)
+    """
+    win_path : D:\\my xinh\nhung ngu
+    linux_path : D/my xinh/nhung ngu
+    """
+    pass
+    return linux_path
 
 class FileDir(object):
-    def __init__(self, path):
-        
+    def __init__(self, path):   
         self.path = path
         
-
     def get_fs_type(self):
         partition = {}
         for part in psutil.disk_partitions():
@@ -96,7 +65,9 @@ class FileDir(object):
         """
             Return dict of metadata
         """
-        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path), 'fs': self.get_fs_type(), 'attr':{}}
+        path = convert_linux_path(os.path.abspath(self.path))
+        data = {'name': os.path.basename(self.path), 'path': path, 'fs': self.get_fs_type(), 'attr':{}}
+
         if os.path.islink(self.path):
             real_path = os.path.realpath(self.path)
             data['type'] = "symlink"
@@ -142,7 +113,5 @@ class FileDir(object):
                 chunk = file.read(block_size)
         return checksum_list
 
-
-config = get_config("client.conf")
+config = get_config("client_vnu.conf")
 block_size = int(config['FILE']['block_size'])
-

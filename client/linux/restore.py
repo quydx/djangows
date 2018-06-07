@@ -30,32 +30,42 @@ def main(args):
                     basedir = os.path.dirname(value['path'])
                     if not os.path.exists(basedir):
                         os.makedirs(basedir, exist_ok=True) 
-                        os.mknod(value['path'])     # touch empty file 
+                    os.mknod(value['path'])     # touch empty file 
 
                 # compare checksum list 
                 f = utils.FileDir(value['path'])
                 checksum_list = f.list_checksum()
-                checksum_diff = compare_checksum(value['checksum'], checksum_list)
-                print(value['checksum'])
-                checksum_diff['path'] = value['path']
-                print(checksum_diff)
-                data = str(checksum_diff).replace("'", '"')
+                need_data = {"need": need_blocks(value['checksum'], checksum_list), "path": value['path']}
+                need_data_json = str(need_data).replace("'", '"')
                 url = "http://{}/rest/api/download_data/{}/".format(domain, version)
-                response = requests.request("GET", url, data=data, headers=headers)
+                response = requests.request("GET", url, data=need_data_json, headers=headers)
                 print(response.status_code)
-                print(response.json())
                 
                 response_json = response.json()
-                # download block data
-                download_data(domain, response_json['path'], response_json['url'].values())
+                print("Need : ")
+                print(response_json['url'])
+                print("Existed :")
+                print(existed_blocks(value['checksum'], checksum_list))
+
+                file_read = open(value['path'], 'rb')
+                print(list_block_id_existed(value['checksum'], checksum_list))
+                data_existed = list(utils.read_in_blocks(file_read, list_block_id_existed(value['checksum'], checksum_list)))
                 
+                # print(data_existed)
+                data_need = list(get_data(domain, response_json['url']))
+                # print(data_need)
+                
+                data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
+                data_sorted = sorted(data, key=lambda x: x[1])
+
+                # write to file 
+                join_file(value['path'], data_sorted)
+
                 # add attributes
                 add_attribute(value['path'], value['attr'])    
-
+                print("Done : {}".format(value['path']))
             elif value['type'] == 'symlink':
                 pass
-
-
     else:
         print("{} - {}".format(init.text, str(init.status_code)))
 
@@ -74,22 +84,53 @@ def add_attribute(path, attr):
     os.utime(path,(float(attr['create_time']), float(attr['modify_time'])))
 
 
-def compare_checksum(list_old, list_new):
-    diff_list = {}
-    addition_checksum = list(set(list_old) - set(list_new))
-    addition_pos = [str(list_old.index(i)) for i in addition_checksum]
-    addtion = dict(zip(addition_pos, addition_checksum))
-    # addtion = sorted(list(zip(addition_checksum, addition_pos)), key=lambda x: x[1])
+def list_block_id_existed(list_pre, list_now):
+    addition_checksum = list(set(list_now) & set(list_pre))
+    addition_pos = [list_now.index(i) for i in addition_checksum]
+    return addition_pos
 
-    deletion_checksum = list(set(list_new) - set(list_old))
-    deletion_pos = [str(list_new.index(i)) for i in deletion_checksum] 
-    deletion = dict(zip(deletion_pos, deletion_checksum))
-    # deletion = sorted(list(zip(deletion_checksum, deletion_pos)), key=lambda x: x[1])
-    diff_list = {"addition": addtion, "deletion": deletion}
-    
-    return diff_list
+
+def need_blocks(list_pre, list_now):
+    """
+    The block is not available in the current version
+    return: dict  
+    """
+    # diff_list = {}
+    addition_checksum = list(set(list_pre) - set(list_now))
+    addition_pos = [str(list_pre.index(i)) for i in addition_checksum]
+    addtion = dict(zip(addition_pos, addition_checksum))
+    # diff_list = {"addition": addtion, "existed": existed}
+    return addtion
+
+
+def existed_blocks(list_pre, list_now):
+    """
+    The block existed in the current version
+    return: dict with position of previous verison  
+    """
+    existed_checksum = list(set(list_now) & set(list_pre))
+    exitsed_pos = [str(list_pre.index(i)) for i in existed_checksum]
+    existed = dict(zip(exitsed_pos, existed_checksum))
+    return existed
+
 
 def download_data(domain, path, url_list):
     base_url = "http://{}".format(domain)
     for url in url_list:
         urllib.request.urlretrieve(base_url + url,  '/' + url.split('/', 3)[3])
+
+
+def get_data(domain, url_dict):
+    base_url = "http://{}".format(domain)
+    for block_id, url in url_dict.items():
+        response = urllib.request.urlopen(base_url + url)
+        data = response.read()
+        yield (data, int(block_id))
+
+
+def join_file(path, data_chunks):
+    file_write = open(path, 'wb')
+    for chunk in data_chunks:
+        # print(type(chunk[0]))
+        file_write.write(chunk[0])
+    file_write.close()
