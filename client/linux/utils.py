@@ -2,6 +2,32 @@ import os
 import hashlib
 import configparser
 import psutil
+import subprocess
+
+
+def get_file_acl(path):
+    """ get dict of acl  of a path
+    """
+    acl = dict()
+    getacl = subprocess.call(['which','getfacl'])
+    if getacl == 0:
+        return False
+    else:
+        output = subprocess.check_output(['getfacl', path])
+        lines = output.stdout.decode('utf-8').splitlines()
+        user, group, other = [], [], []
+        for line in lines:
+            acl_item = tuple(line.split('::'))
+            if line.startswith('user'):
+                user.append(acl_item)
+            elif line.startswith('group'):
+                group.append(acl_item)
+            elif line.startswith('other'):
+                other.append(acl_item)
+        acl['user'] = user
+        acl['group'] = group
+        acl['other'] = other
+    return acl
 
 
 def get_config(config_file):
@@ -107,3 +133,4 @@ class FileDir(object):
 
 config = get_config("client.conf")
 block_size = int(config['FILE']['block_size'])
+
