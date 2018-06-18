@@ -3,6 +3,7 @@ import requests
 import json
 import utils
 import urllib.request
+import ast 
 
 
 def main(args):
@@ -69,19 +70,21 @@ def main(args):
     else:
         print("{} - {}".format(init.text, str(init.status_code)))
 
+
 def init_restore(domain, headers, version, path):
     url = "http://{}/rest/api/restore/{}".format(domain, version)
     query = {"path": path}
     response = requests.request("GET", url, headers=headers, params=query)
     return response
 
-# {'access_time': 1526784106.4107292, 'nlink': 1, 'inode': 6031529, 'device': 2050, 'mode': 33279, 
-# 'create_time': 1525974482.3170633, 'size': 8416, 'modify_time': 1525974482.3130634, 'uid': 1000, 'gid': 1000}
+# {'access_time': 1526784106.4107292, 'mode': 33279, 
+# 'create_time': 1525974482.3170633, 'modify_time': 1525974482.3130634, 'uid': 1000, 'gid': 1000}
 
 def add_attribute(path, attr):
     os.chown(path, int(attr['uid']), int(attr['gid']))
     os.chmod(path, int(attr['mode']))
     os.utime(path,(float(attr['create_time']), float(attr['modify_time'])))
+    utils.set_acl(path, ast.literal_eval(attr['acl']))
 
 
 def list_block_id_existed(list_pre, list_now):
@@ -131,6 +134,5 @@ def get_data(domain, url_dict):
 def join_file(path, data_chunks):
     file_write = open(path, 'wb')
     for chunk in data_chunks:
-        # print(type(chunk[0]))
         file_write.write(chunk[0])
     file_write.close()

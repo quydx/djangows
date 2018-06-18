@@ -5,29 +5,36 @@ import psutil
 import subprocess
 
 
-def get_file_acl(path):
-    """ get dict of acl  of a path
+def get_acl(path):
+    """ get acl of a path """
+    output = subprocess.check_output(['getfacl', '-p', path]).decode('utf-8')
+    lines = output.splitlines()
+    acl_rules = list()
+    for line in lines:
+        if line.startswith('#') or line == '':
+            pass
+        elif not line.startswith('default'):
+            if line.split(':')[1]:
+                acl_rules.append(line)
+        else:
+            if line.split(':')[2]:
+                acl_rules.append(line)
+    return acl_rules
+
+
+def set_acl(path, acl_rules):
+    """ 
+    set acl of a path 
+    input : get_acl function 
     """
-    acl = dict()
-    getacl = subprocess.call(['which','getfacl'])
-    if getacl == 0:
-        return False
-    else:
-        output = subprocess.check_output(['getfacl', path])
-        lines = output.stdout.decode('utf-8').splitlines()
-        user, group, other = [], [], []
-        for line in lines:
-            acl_item = tuple(line.split('::'))
-            if line.startswith('user'):
-                user.append(acl_item)
-            elif line.startswith('group'):
-                group.append(acl_item)
-            elif line.startswith('other'):
-                other.append(acl_item)
-        acl['user'] = user
-        acl['group'] = group
-        acl['other'] = other
-    return acl
+    for rule in acl_rules:
+        print(rule)
+        if rule.startswith('default'):
+            cmd = ['setfacl', '-dm', rule.split(':', 1)[1], path]
+        else:
+            cmd = ['setfacl', '-m', rule, path]
+        subprocess.call(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return 0
 
 
 def get_config(config_file):
@@ -105,6 +112,7 @@ class FileDir(object):
                 data['checksum'] = md5(real_path)
             return data
 
+        # Permission 
         stat = os.stat(self.path)
         attr = {}
         attr['access_time'] = stat.st_atime  # access time
@@ -112,13 +120,14 @@ class FileDir(object):
         attr['create_time'] = stat.st_ctime  # create time
         attr['uid'] = stat.st_uid            # user ID
         attr['gid'] = stat.st_gid            # group ID
-        attr['size'] = stat.st_size          # size
-        attr['nlink'] = stat.st_nlink        # number of hard links
-        attr['inode'] = stat.st_ino          # inode number
-        attr['device'] = stat.st_dev         # device inode resides on.
         attr['mode'] = stat.st_mode          # inode protection mode
+        # ACL
+        attr['acl'] = get_acl(self.path)
 
         data['attr'] = attr
+
+        
+        
         if os.path.isdir(self.path):
             data['type'] = "directory"
         elif os.path.isfile(self.path):
