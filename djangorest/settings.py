@@ -25,7 +25,7 @@ SECRET_KEY = 'bj)5w=r_up%h60i^8d^mxwfg^3w&u8jnqkqt!j1velmms8r@c7'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["192.168.158.98","0.0.0.0"]
 
 
 # Application definition
@@ -83,7 +83,7 @@ DATABASES = {
         'NAME': 'webservice',
         'USER': 'root',
         'PASSWORD': 'root',
-        'HOST': 'localhost',
+        'HOST': 'db',
         'PORT': ''
     }
 }

@@ -3,6 +3,26 @@ import requests
 import json
 import utils
 import urllib.request
+import ast 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# create a console handler
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# create a file handler
+handler = logging.FileHandler('restore_log.log')
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def main(args):
@@ -12,49 +32,59 @@ def main(args):
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     path = args.repo_target
     version = args.version
+    block_size = int(config['FILE']['block_size'])
 
+    # start a restore
+    logger.info("Start restore session")
     init = init_restore(domain, headers, version, path)
 
     if init.status_code == 200:
-        print(json.dumps(init.json(), indent=4))
-        for key, value in init.json().items():
+        # logger.debug(json.dumps(init.json(), indent=4))
+        for value in init.json().values():
+            logger.info("Restore: {}".format(value['path']))
             if value['type'] == 'directory':
+
+                # make directory recusive 
                 if not os.path.isdir(value['path']):
-                    os.makedirs(path, exist_ok=True)    # make directory recusive 
+                    os.makedirs(path, exist_ok=True)   
+                    logger.debug("Directory {} created".format(value['path']))
 
                 # add attributes
                 add_attribute(value['path'], value['attr'])    
-
+                logger.info("DONE: {} restore done".format(value['path']))
             elif value['type'] == 'file':
                 if not os.path.isfile(value['path']):
+
+                    # touch empty file 
                     basedir = os.path.dirname(value['path'])
                     if not os.path.exists(basedir):
                         os.makedirs(basedir, exist_ok=True) 
-                    os.mknod(value['path'])     # touch empty file 
+                    os.mknod(value['path'])     
+                    logger.debug("Empty file {} created".format(value['path']))
 
                 # compare checksum list 
-                f = utils.FileDir(value['path'])
+                f = utils.FileDir(value['path'], config)
                 checksum_list = f.list_checksum()
-                need_data = {"need": need_blocks(value['checksum'], checksum_list), "path": value['path']}
-                need_data_json = str(need_data).replace("'", '"')
+                need_data = {"need": need_blocks(value['checksum'], checksum_list), \
+                            "path": value['path']}
+                need_data_json = str(need_data).replace("'", '"')  # convert to json format
                 url = "http://{}/rest/api/download_data/{}/".format(domain, version)
+                
+                logger.debug("Get data {} - {}".format(value['path'], value['checksum']))
                 response = requests.request("GET", url, data=need_data_json, headers=headers)
-                print(response.status_code)
                 
                 response_json = response.json()
-                print("Need : ")
-                print(response_json['url'])
-                print("Existed :")
-                print(existed_blocks(value['checksum'], checksum_list))
+                logger.debug("Download: ")
+                logger.debug(response_json['url'])
+                logger.debug("Existed:")
+                logger.debug(existed_blocks(value['checksum'], checksum_list))
 
                 file_read = open(value['path'], 'rb')
-                print(list_block_id_existed(value['checksum'], checksum_list))
-                data_existed = list(utils.read_in_blocks(file_read, list_block_id_existed(value['checksum'], checksum_list)))
                 
-                # print(data_existed)
+                data_existed = list(utils.read_in_blocks(file_read, \
+                            list_block_id_existed(value['checksum'], checksum_list), block_size))
                 data_need = list(get_data(domain, response_json['url']))
-                # print(data_need)
-                
+           
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
                 data_sorted = sorted(data, key=lambda x: x[1])
 
@@ -63,11 +93,12 @@ def main(args):
 
                 # add attributes
                 add_attribute(value['path'], value['attr'])    
-                print("Done : {}".format(value['path']))
+                logger.info("DONE: {} restore done".format(value['path']))
             elif value['type'] == 'symlink':
-                pass
+                logger.info("PASS: Restore link: {} pass".format(value['path']))
     else:
-        print("{} - {}".format(init.text, str(init.status_code)))
+        logger.warn("{} - {}".format(init.text, str(init.status_code)))
+
 
 def init_restore(domain, headers, version, path):
     url = "http://{}/rest/api/restore/{}".format(domain, version)
@@ -75,13 +106,16 @@ def init_restore(domain, headers, version, path):
     response = requests.request("GET", url, headers=headers, params=query)
     return response
 
-# {'access_time': 1526784106.4107292, 'nlink': 1, 'inode': 6031529, 'device': 2050, 'mode': 33279, 
-# 'create_time': 1525974482.3170633, 'size': 8416, 'modify_time': 1525974482.3130634, 'uid': 1000, 'gid': 1000}
 
 def add_attribute(path, attr):
+    """
+    - Addition permitions, owner, group, time
+    - Set access list 
+    """
     os.chown(path, int(attr['uid']), int(attr['gid']))
     os.chmod(path, int(attr['mode']))
     os.utime(path,(float(attr['create_time']), float(attr['modify_time'])))
+    utils.set_acl(path, ast.literal_eval(attr['acl']))
 
 
 def list_block_id_existed(list_pre, list_now):
@@ -95,11 +129,9 @@ def need_blocks(list_pre, list_now):
     The block is not available in the current version
     return: dict  
     """
-    # diff_list = {}
     addition_checksum = list(set(list_pre) - set(list_now))
     addition_pos = [str(list_pre.index(i)) for i in addition_checksum]
     addtion = dict(zip(addition_pos, addition_checksum))
-    # diff_list = {"addition": addtion, "existed": existed}
     return addtion
 
 
@@ -114,12 +146,6 @@ def existed_blocks(list_pre, list_now):
     return existed
 
 
-def download_data(domain, path, url_list):
-    base_url = "http://{}".format(domain)
-    for url in url_list:
-        urllib.request.urlretrieve(base_url + url,  '/' + url.split('/', 3)[3])
-
-
 def get_data(domain, url_dict):
     base_url = "http://{}".format(domain)
     for block_id, url in url_dict.items():
@@ -131,6 +157,5 @@ def get_data(domain, url_dict):
 def join_file(path, data_chunks):
     file_write = open(path, 'wb')
     for chunk in data_chunks:
-        # print(type(chunk[0]))
         file_write.write(chunk[0])
     file_write.close()

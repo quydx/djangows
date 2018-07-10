@@ -5,29 +5,38 @@ import psutil
 import subprocess
 
 
-def get_file_acl(path):
-    """ get dict of acl  of a path
+def get_acl(path):
+    """ 
+    Get acl of a path 
+    Returns list added rules
     """
-    acl = dict()
-    getacl = subprocess.call(['which','getfacl'])
-    if getacl == 0:
-        return False
-    else:
-        output = subprocess.check_output(['getfacl', path])
-        lines = output.stdout.decode('utf-8').splitlines()
-        user, group, other = [], [], []
-        for line in lines:
-            acl_item = tuple(line.split('::'))
-            if line.startswith('user'):
-                user.append(acl_item)
-            elif line.startswith('group'):
-                group.append(acl_item)
-            elif line.startswith('other'):
-                other.append(acl_item)
-        acl['user'] = user
-        acl['group'] = group
-        acl['other'] = other
-    return acl
+    output = subprocess.check_output(['getfacl', '-p', path]).decode('utf-8')
+    lines = output.splitlines()
+    acl_rules = list()
+    for line in lines:
+        if line.startswith('#') or line == '':
+            pass
+        elif not line.startswith('default'):
+            if line.split(':')[1]:
+                acl_rules.append(line)
+        else:
+            if line.split(':')[2]:
+                acl_rules.append(line)
+    return acl_rules
+
+
+def set_acl(path, acl_rules):
+    """ 
+    set acl of a path 
+    Input : get_acl function 
+    """
+    for rule in acl_rules:
+        if rule.startswith('default'):
+            cmd = ['setfacl', '-dm', rule.split(':', 1)[1], path]
+        else:
+            cmd = ['setfacl', '-m', rule, path]
+        subprocess.call(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return 0
 
 
 def get_config(config_file):
@@ -47,7 +56,7 @@ def md5(real_path):
     return hash_md5.hexdigest()
 
 
-def read_in_blocks(file_object, blk_list):
+def read_in_blocks(file_object, blk_list, block_size):
     block_id = 0
     while True:
         data = file_object.read(block_size)
@@ -59,10 +68,10 @@ def read_in_blocks(file_object, blk_list):
     file_object.close()
 
 
-def cutting_blocks(path, blk_list_save):
+def cutting_blocks(path, blk_list_save, block_size):
     data_save = []
     file_read = open(path, 'rb')
-    data_save = [item[0] for item in read_in_blocks(file_read, blk_list_save)]
+    data_save = [item[0] for item in read_in_blocks(file_read, blk_list_save, block_size)]
     
     file_write = open(path, 'wb')
     for chunk in data_save:
@@ -71,11 +80,9 @@ def cutting_blocks(path, blk_list_save):
 
 
 class FileDir(object):
-    def __init__(self, path):
-        
+    def __init__(self, path, config):
         self.path = path
-        
-
+        self.config = config
     def get_fs_type(self):
         partition = {}
         for part in psutil.disk_partitions():
@@ -105,6 +112,7 @@ class FileDir(object):
                 data['checksum'] = md5(real_path)
             return data
 
+        # Permission 
         stat = os.stat(self.path)
         attr = {}
         attr['access_time'] = stat.st_atime  # access time
@@ -112,13 +120,13 @@ class FileDir(object):
         attr['create_time'] = stat.st_ctime  # create time
         attr['uid'] = stat.st_uid            # user ID
         attr['gid'] = stat.st_gid            # group ID
-        attr['size'] = stat.st_size          # size
-        attr['nlink'] = stat.st_nlink        # number of hard links
-        attr['inode'] = stat.st_ino          # inode number
-        attr['device'] = stat.st_dev         # device inode resides on.
         attr['mode'] = stat.st_mode          # inode protection mode
 
+        # ACL
+        attr['acl'] = get_acl(self.path)
+
         data['attr'] = attr
+
         if os.path.isdir(self.path):
             data['type'] = "directory"
         elif os.path.isfile(self.path):
@@ -132,6 +140,7 @@ class FileDir(object):
         """
             Return list checksum of file separated by block size
         """
+        block_size = int(self.config['FILE']['block_size'])
         hash_md5 = hashlib.md5()
         checksum_list = []
         with open(self.path, 'rb') as file:
@@ -141,8 +150,3 @@ class FileDir(object):
                 checksum_list.append(hash_md5.hexdigest())
                 chunk = file.read(block_size)
         return checksum_list
-
-
-config = get_config("client.conf")
-block_size = int(config['FILE']['block_size'])
-

@@ -1,6 +1,6 @@
 #!/home/locvu/backup_server/env/bin/python  
 import os
-from run import main
+from backup import main
 import argparse
 
 
@@ -23,4 +23,3 @@ if os.path.exists(args.repo_target):
     main(args)
 else:
     print("Specified path does not exist ")
-
