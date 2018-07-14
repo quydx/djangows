@@ -8,6 +8,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
 
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
@@ -50,7 +51,7 @@ def backup_init(request):
     avail_space = 2
     user = get_user_by_token(request)
 
-    if avail_space > 1:
+    if avail_space > 1:  # Available storage greater than 1 GB
         # create repo
         now = datetime.datetime.now()
         repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
@@ -84,55 +85,58 @@ def checksum_pre_version(user, path):
 
 
 def process_filedata(file_object, request_data, user):
-    response_data = {'file_object': file_object.pk}    
+    response_data = {'file_object': file_object.pk}
     blk_list, cks_list = [], []
     block_id = 0
-    
+
+    # Compare previous version
     tupple_id_checksum = checksum_pre_version(user, request_data['path'])    # (id, checksum)
     for checksum in request_data['checksum']:
         if tupple_id_checksum:
             for data_id, cks in tupple_id_checksum:  # block data existed
-                if checksum == cks: 
-                    block_data = FileData.objects.get(id=data_id).block_data 
-                    filedata = FileData(block_data=block_data, block_id=block_id, checksum=checksum, file_object=file_object)
+                if checksum == cks:
+                    block_data = FileData.objects.get(id=data_id).block_data
+                    filedata = FileData(block_data=block_data, block_id=block_id,
+                                        checksum=checksum, file_object=file_object)
                     filedata.save()
-                    break;
+                    break
             else:                               # receive data
                 blk_list.append(block_id)
                 cks_list.append(checksum)
-            block_id += 1    
-        else:   # the first version 
+            block_id += 1
+        else:   # the first version
             blk_list = list(range(len(request_data['checksum'])))
             cks_list = request_data['checksum']
 
     response_data['blocks'] = blk_list
     response_data['checksum'] = cks_list
-    return request_data
+    return response_data
 
 
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
-        body = request.body.decode("utf-8")  # convert byte to string  
+        body = request.body.decode("utf-8")  # convert byte to string
         request_data = json.loads(body)
         current_backup = Backup.objects.get(id=request_data['backup_id'])
         repo_path = current_backup.store_path
         path = repo_path + request_data['path']
         user = get_user_by_token(request)
 
-        # create a file object   
+        # create a file object
         fs = FileSys.objects.get(file_system=request_data["fs"])
-        file_object = File(name=request_data["name"], type_file=request_data["type"], path=request_data["path"], file_system=fs, backup=current_backup)
+        file_object = File(name=request_data["name"], type_file=request_data["type"],
+                           path=request_data["path"], file_system=fs, backup=current_backup)
         file_object.save()
-        
+
         # create attr objects
         for attribute in request_data['attr']:
             attr = Attr.objects.get(name=attribute, file_sys=fs)
             attr_value = AttrValue(attr=attr, value=request_data['attr'][attribute], file_object=file_object)
             attr_value.save()
-            
+
         response_data = {}
-        
+
         if request_data['type'] == 'directory':
             if not os.path.isdir(path):
                 os.makedirs(path, exist_ok=True)    # make directory recusive
@@ -140,19 +144,19 @@ def process_metadata(request):
             response_filedata = process_filedata(file_object, request_data, user)
             response_data.update(response_filedata)
 
-        response_data['status'] = "SUCCESS" 
-        return JsonResponse(response_data) 
+        response_data['status'] = "SUCCESS"
+        return JsonResponse(response_data)
     else:
         return JsonResponse({"status": "FAILED", "messages": "No data"})
 
-    
+
 class DataView(APIView):
     """
-        Receive data and store in storage 
+        Receive data and store in storage
     """
     parser_classes = (MultiPartParser, FormParser)
     def post(self, request, *args, **kwargs):
-        data = request.data 
+        data = request.data
         data_serializer = DataSerializer(data=data)
         if data_serializer.is_valid():
             data_serializer.save()
@@ -172,16 +176,16 @@ def list_backup_info(request, pk=None):
             try:
                 backup = Backup.objects.get(user=user, pk=pk)
                 name = backup.store_path[len(settings.UPLOAD_ROOT):]
-                response_data = {'pk': backup.pk, 'date': backup.date, 'name':name}
+                response_data = {'pk': backup.pk, 'date': backup.date, 'name': name}
             except Backup.DoesNotExist:
-                return HttpResponse('DoesNotExist', status=404)    
+                return HttpResponse('DoesNotExist', status=404)
         else:
             backup = Backup.objects.filter(user=user)
             values = backup.values('pk', 'date', 'store_path')
-            count = 0 
+            count = 0
             for value in values:
                 name = value['store_path'][len(settings.UPLOAD_ROOT):]
-                response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name':name}
+                response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name': name}
                 count += 1
         return JsonResponse(response_data)
 
@@ -199,7 +203,8 @@ def restore_init(request, version=None):
                     for f in files: 
                         attr_set = f.attrvalue_set.all()
                         attr = {a.attr.name: a.value for a in attr_set}
-                        response_data[f.pk] = {'name': f.name, 'path': f.path, 'type': f.type_file, 'fs': str(f.file_system), 'attr': attr}
+                        response_data[f.pk] = {'name': f.name, 'path': f.path, 'type': f.type_file,
+                                               'fs': str(f.file_system), 'attr': attr}
                         if f.type_file == 'file':
                             response_data[f.pk].update({'checksum': list(f.filedata_set.values_list('checksum', flat=True))})
                     return JsonResponse(response_data)
@@ -207,10 +212,10 @@ def restore_init(request, version=None):
                     return HttpResponse('Path Does Not Exist', status=404)
 
             except IndexError:
-                return HttpResponse('Version Does Not Exist', status=404)    
+                return HttpResponse('Version Does Not Exist', status=404)
         else:
             return HttpResponse("Missing version definite", status=412)
-            
+
 
 @csrf_exempt
 def download_data(request, version=None):
@@ -221,17 +226,17 @@ def download_data(request, version=None):
                 body = request.body.decode("utf-8")  # convert byte to string
                 print(body)
                 request_data = json.loads(body)
-                
-                
+
                 # data = FileData.objects.get(file_object=f, checksum=checksum)
-                url = url_by_checksum(user, version, request_data['path'], request_data['need'].values())
+                url = url_by_checksum(user, version, request_data['path'],
+                                      request_data['need'].values())
                 response_data = request_data
                 print(url)
                 response_data['url'] = url
                 print(response_data)
                 return JsonResponse(response_data)
             except IndexError:
-                return HttpResponse('Version Does Not Exist', status=404)    
+                return HttpResponse('Version Does Not Exist', status=404)
         else:
             return HttpResponse("Missing version definite", status=412)
 
@@ -245,3 +250,46 @@ def url_by_checksum(user, version, path, list_checksum):
         url[str(data.block_id)] = data.block_data.url
 
     return url 
+
+
+@csrf_exempt
+def add_user(request):
+    if request.method == 'POST':
+        body = request.body.decode("utf-8")  # convert byte to string
+        request_data = json.loads(body)
+        print(request_data)
+        username = request_data['username']
+        password = "strongpass@@"
+
+        # Check username existed 
+        try: 
+            user = User.objects.get(username=username)
+            return HttpResponse('User Existed', status=409)
+        except User.DoesNotExist:
+            user = User(username=username, password=password)
+            user.save()
+            token = Token(user=user)
+            token.save()
+            crypt_key = user.keyuser.key 
+
+            return JsonResponse({"token": token.key, "key": crypt_key})
+
+
+def list_user(request):
+    if request.method == "GET":
+        users = User.object.all()
+        user_data = {}
+        for user in users:
+            user_data[user.pk] = user.username
+        return JsonResponse(user_data)
+
+
+@csrf_exempt
+def remove_user(request):
+    if request.method == 'POST':
+        body = request.body.decode("utf-8")
+        request_data = json.loads(body)
+        username = request_data['username']
+        user = User.objects.get(username=username)
+        user.delete()
+        return HttpResponse('User Deleted', status=200)

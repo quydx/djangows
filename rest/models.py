@@ -1,9 +1,14 @@
+import datetime
+import os
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from cryptography.fernet import Fernet
+
 from djangorest import settings
-import datetime
-import os
 
 
 upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
@@ -82,6 +87,26 @@ class FileData(models.Model):
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
     block_data = models.FileField(storage=upload_storage, upload_to=key_store_upload_to, blank=False, null=False)
-     
+
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)
+
+
+class KeyUser(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    key = models.CharField(max_length=44, default=Fernet.generate_key().decode('utf-8'))
+
+    def __str__(self):
+        return "{} {}".format(self.key, self.user)
+
+
+# KeyUser model will be automatically created/updated when we create/update User instances.
+@receiver(post_save, sender=User)
+def create_key_user(sender, instance, created, **kwargs):
+    if created:
+        KeyUser.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_key_user(sender, instance, **kwargs):
+    instance.keyuser.save()

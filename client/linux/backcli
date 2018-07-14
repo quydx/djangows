@@ -1,4 +1,4 @@
-#!/home/locvu/backup_server/env/bin/python  
+#!/home/locvu/backup_server/env/bin/python
 import os
 from backup import main
 import argparse
@@ -8,12 +8,12 @@ parser = argparse.ArgumentParser(description="Run the Backup CLI")
 parser.add_argument('--config-file', dest='config_file', default='client.conf',
                     help='Path of config file')
 parser.add_argument('--target', dest='repo_target', required=True,
-                    help='Path of directory need to backup')                    
+                    help='Path of directory need to backup')
 args = parser.parse_args()
 
 if os.path.exists(args.config_file):
     pass
-else: 
+else:
     print("File config does not exist ")
     exit(1)
 

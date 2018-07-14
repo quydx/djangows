@@ -1,8 +1,10 @@
 import os
 import requests
 import json
-import utils
 import logging
+
+import utils
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -72,7 +74,7 @@ def send_metadata(config, headers, path, backup_id):
 
     # Call send data function if response data have new block 
     if 'blocks' in response_data and response_data['blocks'] != []:
-        send_data(domain, headers, path, response_data['blocks'], \
+        send_data(config, headers, path, response_data['blocks'], \
                 response_data['file_object'], response_data['checksum'])
 
         logger.info("DONE: Send {} done".format(path))
