@@ -99,9 +99,9 @@ def cutting_blocks(path, blk_list_save, block_size):
 
 
 class FileDir(object):
-    def __init__(self, path, config):
+    def __init__(self, path, block_size):
         self.path = path
-        self.config = config
+        self.block_size = block_size
     def get_fs_type(self):
         partition = {}
         for part in psutil.disk_partitions():
@@ -159,13 +159,12 @@ class FileDir(object):
         """
             Return list checksum of file separated by block size
         """
-        block_size = int(self.config['FILE']['block_size'])
         hash_md5 = hashlib.md5()
         checksum_list = []
         with open(self.path, 'rb') as file:
-            chunk = file.read(block_size)
+            chunk = file.read(self.block_size)
             while len(chunk) > 0:
                 hash_md5.update(chunk)
                 checksum_list.append(hash_md5.hexdigest())
-                chunk = file.read(block_size)
+                chunk = file.read(self.block_size)
         return checksum_list

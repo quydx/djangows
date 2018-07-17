@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework import status
+from cryptography.fernet import Fernet
 
 from . import utils
 from .models import Backup, File, FileSys, FileData, Attr, AttrValue
@@ -116,12 +117,14 @@ def process_filedata(file_object, request_data, user):
 @csrf_exempt
 def process_metadata(request):
     if request.method == 'POST':
-        body = request.body.decode("utf-8")  # convert byte to string
-        request_data = json.loads(body)
+        user = get_user_by_token(request)
+        cipher_suite = Fernet(user.keyuser.key)
+        plain_text = cipher_suite.decrypt(request.body)
+        request_data = json.loads(plain_text.decode())
+        print(request_data)
         current_backup = Backup.objects.get(id=request_data['backup_id'])
         repo_path = current_backup.store_path
         path = repo_path + request_data['path']
-        user = get_user_by_token(request)
 
         # create a file object
         fs = FileSys.objects.get(file_system=request_data["fs"])
@@ -145,9 +148,9 @@ def process_metadata(request):
             response_data.update(response_filedata)
 
         response_data['status'] = "SUCCESS"
-        return JsonResponse(response_data)
-    else:
-        return JsonResponse({"status": "FAILED", "messages": "No data"})
+        print(response_data)
+        cipher_text = cipher_suite.encrypt(json.dumps(response_data).encode())
+        return HttpResponse(cipher_text, content_type='application/octet-stream')
 
 
 class DataView(APIView):
@@ -155,9 +158,15 @@ class DataView(APIView):
         Receive data and store in storage
     """
     parser_classes = (MultiPartParser, FormParser)
+    
     def post(self, request, *args, **kwargs):
-        data = request.data
-        data_serializer = DataSerializer(data=data)
+        user = get_user_by_token(request)
+
+        # decrypt
+        # cipher_suite = Fernet(user.keyuser.key)
+        # print(request.FILES.getlist('block_data'))
+
+        data_serializer = DataSerializer(data=request.data)
         if data_serializer.is_valid():
             data_serializer.save()
             return Response(data_serializer.data, status=status.HTTP_201_CREATED)
