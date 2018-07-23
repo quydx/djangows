@@ -10,8 +10,11 @@ parser.add_argument('--config-file', dest='config_file', default='client.conf',
 parser.add_argument('-t', dest='repo_target', required=True,
                     help='Path of directory need to backup')
 parser.add_argument('-s', dest='server_address',
-                    help='Server backup')                    
-                    
+                    help='Server backup')                 
+parser.add_argument('-j', dest='job_id',
+                    help='Job in controller')     
+
+
 args = parser.parse_args()
 
 if os.path.exists(args.config_file):

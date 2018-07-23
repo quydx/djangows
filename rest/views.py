@@ -70,7 +70,7 @@ def backup_init(request):
         return JsonResponse(res)    # return 200
     else:
         return HttpResponse('Full disk', status=507)
-    
+
 
 def checksum_pre_version(user, path):
     try:

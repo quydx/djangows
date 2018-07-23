@@ -46,14 +46,28 @@ def main(args):
             logger.info("Ready to backup")
             backup_id = json_data['backup_id']
             send_metadata(server_address, block_size, token, path, backup_id, key)
+            msg = "Successfull"
         else:
-            logger.error("Fail in prepare to backup")
+            msg = "Fail in prepare to backup"
+            logger.error(msg)
+
     elif init.status_code == 401:
-        logger.error("Authentication: " + init.text)
+        msg = "Authentication: " + init.text
+        logger.error(msg)
     elif init.status_code == 507:
-        logger.error("Insufficient Storage: " + init.text)
+        msg = "Insufficient Storage: " + init.text
+        logger.error(msg)
     else:
-        logger.error("Unknown - " + str(init.status_code))
+        msg = "Unknown - " + str(init.status_code)
+        logger.error(msg)
+
+    # Send backup result to Controller
+    ctl_address = config['CONTROLLER']['address']
+    url = "http://{}/api/result-backup/".format(ctl_address)
+    # TODO  send msg
+    data = {"job_id": args.job_id, "status_code": init.status_code, "msg": msg}
+    response = requests.request("POST", url, data=json.dumps(data), headers=headers)
+    print(response.status_code)
 
 
 def init_backup(server_address, headers):
