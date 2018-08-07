@@ -25,6 +25,7 @@ def parse():
         exit(1)
 
 def get_job():
+    threading.Timer(5, get_job).start()
     args = parse()
     config = utils.get_config(args.config_file)
     address = config['CONTROLLER']['address']
@@ -47,12 +48,25 @@ def get_job():
                   " -j " + str(job['job_id']))
 
 
-def main(f_stop):
+def info_agent():
+    threading.Timer(60, info_agent).start()
+    print("Send information agent")
+    args = parse()
+    config = utils.get_config(args.config_file)
+    address = config['CONTROLLER']['address']
+    token = config['AUTH']['token']
+    url = "http://{}/api/info-agent/".format(address)
+    headers = {'Content-Type': 'application/json;', 'Authorization': token}
+    data = utils.get_info_agent()
+    response = requests.request("POST", url, data=json.dumps(data), headers=headers)
+    print(response.status_code)
+
+
+def main():
     get_job()
-    if not f_stop.is_set():
-        threading.Timer(5, main, [f_stop]).start()
+    info_agent()
+            
 
 
 if __name__ == '__main__':
-    f_stop = threading.Event()
-    main(f_stop)
+    main()

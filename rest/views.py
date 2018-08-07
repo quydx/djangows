@@ -2,6 +2,7 @@ import os
 import re
 import datetime
 import json
+import subprocess
 from pprint import pprint
 
 from django.shortcuts import render
@@ -127,14 +128,22 @@ def process_metadata(request):
         path = repo_path + request_data['path']
 
         # create a file object
-        fs = FileSys.objects.get(file_system=request_data["fs"])
+        try:
+            fs = FileSys.objects.get(file_system=request_data["fs"])
+        except FileSys.DoesNotExist:
+            fs = FileSys.objects.create(file_system=request_data["fs"])
+
         file_object = File(name=request_data["name"], type_file=request_data["type"],
                            path=request_data["path"], file_system=fs, backup=current_backup)
         file_object.save()
 
         # create attr objects
         for attribute in request_data['attr']:
-            attr = Attr.objects.get(name=attribute, file_sys=fs)
+            try:
+                attr = Attr.objects.get(name=attribute, file_sys=fs)
+            except Attr.DoesNotExist:
+                attr = Attr.objects.create(name=attribute, file_sys=fs)
+
             attr_value = AttrValue(attr=attr, value=request_data['attr'][attribute], file_object=file_object)
             attr_value.save()
 
@@ -273,7 +282,7 @@ def add_user(request):
         # Check username existed 
         try: 
             user = User.objects.get(username=username)
-            return HttpResponse('User Existed', status=409)
+            return HttpResponse('Create agent fail: User ' + username + ' existed', status=409)
         except User.DoesNotExist:
             user = User(username=username, password=password)
             user.save()
@@ -302,3 +311,11 @@ def remove_user(request):
         user = User.objects.get(username=username)
         user.delete()
         return HttpResponse('User Deleted', status=200)
+
+
+def result_backup(request, backup_id):
+    if request.method == 'GET':
+        user = get_user_by_token(request)
+        backup = Backup.objects.get(user=user, pk=backup_id)
+        size_dir = subprocess.check_output(['du','-sb', backup.store_path]).split()[0].decode('utf-8')
+        return JsonResponse({"data_change": size_dir, "sync_time": backup.date})

@@ -1,4 +1,4 @@
-#!/home/locvu/backup_server/env/bin/python
+#!/home/locvu/djangows/env/bin/python
 import os
 from backup import main
 import argparse
@@ -28,4 +28,6 @@ if os.path.exists(args.repo_target):
         args.repo_target = args.repo_target[:len(args.repo_target)-1]
     main(args)
 else:
-    print("Specified path does not exist ")
+    err = "Specified path does not exist"
+    main(args, err)
+    print(err)

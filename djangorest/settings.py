@@ -80,11 +80,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS': {},
-        'NAME': 'webservice',
+        'NAME': 'backup_core',
         'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': ''
+        'PASSWORD': 'password',
+        'HOST': 'localhost'
     }
 }
 

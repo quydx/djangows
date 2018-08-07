@@ -27,46 +27,58 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def main(args):
+def main(args, error=None):
     config = utils.get_config(args.config_file)
+    ctl_address = config['CONTROLLER']['address']
+    url_result = "http://{}/api/result-backup/".format(ctl_address)
     server_address = args.server_address or config['AUTH']['server_address']
     token = config['AUTH']['token']
     key = config['CRYPTO']['key']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
-    block_size = int(config['FILE']['block_size'])
-    path = args.repo_target
 
-    # start a backup 
-    init = init_backup(server_address, headers) 
+    if error:
+        data = {"job_id": args.job_id, "status_code": 404, "msg": error}
+    else:
+        block_size = int(config['FILE']['block_size'])
+        path = args.repo_target
+        data = {}
 
-    if init.status_code == 200:
-        json_data = json.loads(init.text)
-        logger.debug(json_data)
-        if json_data['status'] == "ok":
-            logger.info("Ready to backup")
-            backup_id = json_data['backup_id']
-            send_metadata(server_address, block_size, token, path, backup_id, key)
-            msg = "Successfull"
+        # start a backup 
+        init = init_backup(server_address, headers) 
+
+        if init.status_code == 200:
+            json_data = json.loads(init.text)
+            logger.debug(json_data)
+            if json_data['status'] == "ok":
+                logger.info("Ready to backup")
+                backup_id = json_data['backup_id']
+                send_metadata(server_address, block_size, token, path, backup_id, key)
+
+                # Notify send last message
+                url_last_msg = "http://{}/rest/api/result_backup/{}".format(server_address, backup_id)
+                last_msg = requests.request("GET", url_last_msg, headers=headers)
+                print(last_msg)
+                data.update(last_msg.json())
+
+                msg = "Successfull"
+            else:
+                msg = "Fail in prepare to backup"
+                logger.error(msg)
+
+        elif init.status_code == 401:
+            msg = "Authentication: " + init.text
+            logger.error(msg)
+        elif init.status_code == 507:
+            msg = "Insufficient Storage: " + init.text
+            logger.error(msg)
         else:
-            msg = "Fail in prepare to backup"
+            msg = "Unknown - " + str(init.status_code)
             logger.error(msg)
 
-    elif init.status_code == 401:
-        msg = "Authentication: " + init.text
-        logger.error(msg)
-    elif init.status_code == 507:
-        msg = "Insufficient Storage: " + init.text
-        logger.error(msg)
-    else:
-        msg = "Unknown - " + str(init.status_code)
-        logger.error(msg)
-
-    # Send backup result to Controller
-    ctl_address = config['CONTROLLER']['address']
-    url = "http://{}/api/result-backup/".format(ctl_address)
-    # TODO  send msg
-    data = {"job_id": args.job_id, "status_code": init.status_code, "msg": msg}
-    response = requests.request("POST", url, data=json.dumps(data), headers=headers)
+        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg})
+    
+    # Send backup result to Controller  
+    response = requests.request("POST", url_result, data=json.dumps(data), headers=headers)
     print(response.status_code)
 
 
@@ -86,7 +98,7 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
     # encrypt
     cipher_suite = Fernet(key)
     cipher_text = cipher_suite.encrypt(json.dumps(payload).encode())
-    
+
     logger.debug(path)
     response = requests.request("POST", url, data=cipher_text, headers=headers)
 
@@ -130,6 +142,6 @@ def send_data(server_address, block_size, token, path, blocks, file_object, chec
         logger.debug("SENDING: {} - {}".format(block_id, checksum[count]))
         count += 1
         response = requests.post(url, files=files, data=values, headers=headers)
-        
+
         logger.debug(response.text)
     return

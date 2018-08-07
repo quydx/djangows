@@ -5,6 +5,8 @@ import psutil
 import subprocess
 import logging.config
 import yaml
+import platform
+import psutil
 
 
 def setup_logging(default_path='logging.yaml', default_level=logging.INFO,
@@ -96,6 +98,12 @@ def cutting_blocks(path, blk_list_save, block_size):
     for chunk in data_save:
         file_write.write(chunk)
     file_write.close()
+
+
+def get_info_agent():
+    mem = psutil.virtual_memory().total / (1024**3)
+    data = {"cpus": psutil.cpu_count(), "platform": platform.platform(), "mem_total": round(mem,2)}
+    return data
 
 
 class FileDir(object):
