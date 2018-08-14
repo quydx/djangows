@@ -3,6 +3,7 @@ import re
 import datetime
 import json
 import subprocess
+import logging
 from pprint import pprint
 
 from django.shortcuts import render
@@ -24,6 +25,9 @@ from .serializers import DataSerializer
 from djangorest import settings
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_header(request):
     regex = re.compile('^HTTP_')
     header = dict((regex.sub('', header), value) for (header, value)
@@ -38,10 +42,8 @@ def get_user_by_token(request):
         token_obj = Token.objects.get(key=token)
         user = token_obj.user
         return user
-    except Token.DoesNotExist:
-        return HttpResponse('Token is not authorized', status=401)
-    except KeyError:
-        return HttpResponse('Unauthorized', status=401)
+    except (Token.DoesNotExist, KeyError):
+        return None
 
 
 def backup_init(request):
@@ -50,27 +52,29 @@ def backup_init(request):
     # disk = utils.Disk('/dev/sda1')
     # avail_space = disk.get_avail_space()
 
-    avail_space = 2
+    avail_space = 2  # for test 
     user = get_user_by_token(request)
+    if user:
+        if avail_space > settings.MIN_CAPACITY:  # Available storage greater than 1 GB
+            # create repo
+            now = datetime.datetime.now()
+            repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
+            store_path = "{}{}".format(settings.UPLOAD_ROOT, repo_name)
+            backup = Backup(user=user, date=now, store_path=store_path)
+            backup.save()
 
-    if avail_space > 1:  # Available storage greater than 1 GB
-        # create repo
-        now = datetime.datetime.now()
-        repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
-        store_path = "{}{}".format(settings.UPLOAD_ROOT, repo_name)
-        backup = Backup(user=user, date=now, store_path=store_path)
-        backup.save()
+            # make dir repo
+            if not os.path.isdir(store_path):
+                os.mkdir(store_path)
 
-        # make dir repo
-        if not os.path.isdir(store_path):
-            os.mkdir(store_path)
-
-        res['status'] = 'ok'
-        res['backup_id'] = backup.id
-        print(res)
-        return JsonResponse(res)    # return 200
+            res['status'] = 'ok'
+            res['backup_id'] = backup.id
+            print(res)
+            return JsonResponse(res)    # return 200
+        else:
+            return HttpResponse('Full disk', status=507)
     else:
-        return HttpResponse('Full disk', status=507)
+        return HttpResponse('Unauthorized', status=401)
 
 
 def checksum_pre_version(user, path):
@@ -119,47 +123,50 @@ def process_filedata(file_object, request_data, user):
 def process_metadata(request):
     if request.method == 'POST':
         user = get_user_by_token(request)
-        cipher_suite = Fernet(user.keyuser.key)
-        plain_text = cipher_suite.decrypt(request.body)
-        request_data = json.loads(plain_text.decode())
-        print(request_data)
-        current_backup = Backup.objects.get(id=request_data['backup_id'])
-        repo_path = current_backup.store_path
-        path = repo_path + request_data['path']
+        if user:
+            cipher_suite = Fernet(user.keyuser.key)
+            plain_text = cipher_suite.decrypt(request.body)
+            request_data = json.loads(plain_text.decode())
+            print(request_data)
+            current_backup = Backup.objects.get(id=request_data['backup_id'])
+            repo_path = current_backup.store_path
+            path = repo_path + request_data['path']
 
-        # create a file object
-        try:
-            fs = FileSys.objects.get(file_system=request_data["fs"])
-        except FileSys.DoesNotExist:
-            fs = FileSys.objects.create(file_system=request_data["fs"])
-
-        file_object = File(name=request_data["name"], type_file=request_data["type"],
-                           path=request_data["path"], file_system=fs, backup=current_backup)
-        file_object.save()
-
-        # create attr objects
-        for attribute in request_data['attr']:
+            # create a file object
             try:
-                attr = Attr.objects.get(name=attribute, file_sys=fs)
-            except Attr.DoesNotExist:
-                attr = Attr.objects.create(name=attribute, file_sys=fs)
+                fs = FileSys.objects.get(file_system=request_data["fs"])
+            except FileSys.DoesNotExist:
+                fs = FileSys.objects.create(file_system=request_data["fs"])
 
-            attr_value = AttrValue(attr=attr, value=request_data['attr'][attribute], file_object=file_object)
-            attr_value.save()
+            file_object = File(name=request_data["name"], type_file=request_data["type"],
+                            path=request_data["path"], file_system=fs, backup=current_backup)
+            file_object.save()
 
-        response_data = {}
+            # create attr objects
+            for attribute in request_data['attr']:
+                try:
+                    attr = Attr.objects.get(name=attribute, file_sys=fs)
+                except Attr.DoesNotExist:
+                    attr = Attr.objects.create(name=attribute, file_sys=fs)
 
-        if request_data['type'] == 'directory':
-            if not os.path.isdir(path):
-                os.makedirs(path, exist_ok=True)    # make directory recusive
-        elif request_data['type'] == 'file' and request_data['checksum'] != []:
-            response_filedata = process_filedata(file_object, request_data, user)
-            response_data.update(response_filedata)
+                attr_value = AttrValue(attr=attr, value=request_data['attr'][attribute], file_object=file_object)
+                attr_value.save()
 
-        response_data['status'] = "SUCCESS"
-        print(response_data)
-        cipher_text = cipher_suite.encrypt(json.dumps(response_data).encode())
-        return HttpResponse(cipher_text, content_type='application/octet-stream')
+            response_data = {}
+
+            if request_data['type'] == 'directory':
+                if not os.path.isdir(path):
+                    os.makedirs(path, exist_ok=True)    # make directory recusive
+            elif request_data['type'] == 'file' and request_data['checksum'] != []:
+                response_filedata = process_filedata(file_object, request_data, user)
+                response_data.update(response_filedata)
+
+            response_data['status'] = "SUCCESS"
+            print(response_data)
+            cipher_text = cipher_suite.encrypt(json.dumps(response_data).encode())
+            return HttpResponse(cipher_text, content_type='application/octet-stream')
+        else:
+            return HttpResponse('Unauthorized', status=401)
 
 
 class DataView(APIView):
@@ -170,17 +177,19 @@ class DataView(APIView):
     
     def post(self, request, *args, **kwargs):
         user = get_user_by_token(request)
-
+        if user:
         # decrypt
         # cipher_suite = Fernet(user.keyuser.key)
         # print(request.FILES.getlist('block_data'))
 
-        data_serializer = DataSerializer(data=request.data)
-        if data_serializer.is_valid():
-            data_serializer.save()
-            return Response(data_serializer.data, status=status.HTTP_201_CREATED)
+            data_serializer = DataSerializer(data=request.data)
+            if data_serializer.is_valid():
+                data_serializer.save()
+                return Response(data_serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Unauthorized', status=401)
 
     def get(self, request, *args, **ksargs):
         pass
@@ -189,31 +198,37 @@ class DataView(APIView):
 def list_backup_info(request, pk=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
-        response_data = {}
-        if pk:
-            try:
-                backup = Backup.objects.get(user=user, pk=pk)
-                name = backup.store_path[len(settings.UPLOAD_ROOT):]
-                response_data = {'pk': backup.pk, 'date': backup.date, 'name': name}
-            except Backup.DoesNotExist:
-                return HttpResponse('DoesNotExist', status=404)
+        if user:
+            response_data = {}
+            if pk:
+                try:
+                    backup = Backup.objects.get(user=user, pk=pk)
+                    name = backup.store_path[len(settings.UPLOAD_ROOT):]
+                    response_data = {'pk': backup.pk, 'date': backup.date, 'name': name}
+                except Backup.DoesNotExist:
+                    return HttpResponse('DoesNotExist', status=404)
+            else:
+                backup = Backup.objects.filter(user=user)
+                values = backup.values('pk', 'date', 'store_path')
+                count = 0
+                for value in values:
+                    name = value['store_path'][len(settings.UPLOAD_ROOT):]
+                    response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name': name}
+                    count += 1
+            return JsonResponse(response_data)
         else:
-            backup = Backup.objects.filter(user=user)
-            values = backup.values('pk', 'date', 'store_path')
-            count = 0
-            for value in values:
-                name = value['store_path'][len(settings.UPLOAD_ROOT):]
-                response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name': name}
-                count += 1
-        return JsonResponse(response_data)
+            return HttpResponse('Unauthorized', status=401)
 
 
 def restore_init(request, version=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
+        
         if version:
             try:
-                path = request.GET.get('path', '')
+                path = request.GET.get('path')
+                # print(version)
+                logger.debug(path)
                 backup = Backup.objects.filter(user=user)[int(version)]
                 files = File.objects.filter(backup=backup, path__startswith=path)
                 if files:
@@ -239,24 +254,27 @@ def restore_init(request, version=None):
 def download_data(request, version=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
-        if version:
-            try:
-                body = request.body.decode("utf-8")  # convert byte to string
-                print(body)
-                request_data = json.loads(body)
+        if user:
+            if version:
+                try:
+                    body = request.body.decode("utf-8")  # convert byte to string
+                    print(body)
+                    request_data = json.loads(body)
 
-                # data = FileData.objects.get(file_object=f, checksum=checksum)
-                url = url_by_checksum(user, version, request_data['path'],
-                                      request_data['need'].values())
-                response_data = request_data
-                print(url)
-                response_data['url'] = url
-                print(response_data)
-                return JsonResponse(response_data)
-            except IndexError:
-                return HttpResponse('Version Does Not Exist', status=404)
+                    # data = FileData.objects.get(file_object=f, checksum=checksum)
+                    url = url_by_checksum(user, version, request_data['path'],
+                                        request_data['need'].values())
+                    response_data = request_data
+                    print(url)
+                    response_data['url'] = url
+                    print(response_data)
+                    return JsonResponse(response_data)
+                except IndexError:
+                    return HttpResponse('Version Does Not Exist', status=404)
+            else:
+                return HttpResponse("Missing version definite", status=412)
         else:
-            return HttpResponse("Missing version definite", status=412)
+            return HttpResponse('Unauthorized', status=401)
 
 
 def url_by_checksum(user, version, path, list_checksum):
@@ -316,6 +334,9 @@ def remove_user(request):
 def result_backup(request, backup_id):
     if request.method == 'GET':
         user = get_user_by_token(request)
-        backup = Backup.objects.get(user=user, pk=backup_id)
-        size_dir = subprocess.check_output(['du','-sb', backup.store_path]).split()[0].decode('utf-8')
-        return JsonResponse({"data_change": size_dir, "sync_time": backup.date})
+        if user:
+            backup = Backup.objects.get(user=user, pk=backup_id)
+            size_dir = subprocess.check_output(['du','-sb', backup.store_path]).split()[0].decode('utf-8')
+            return JsonResponse({"data_change": size_dir, "sync_time": backup.date})
+        else:
+            return HttpResponse('Unauthorized', status=401)
