@@ -1,0 +1,45 @@
+---
+version: 1
+disable_existing_loggers: False
+formatters:
+    verbose:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: verbose
+        stream: ext://sys.stdout
+
+    logfile_info:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: verbose
+        filename: logs/info.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
+
+    logfile_error:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: verbose
+        filename: logs/errors.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
+
+loggers:
+    restore:
+        level: DEBUG
+        handlers: [console, logfile_info, logfile_error]
+        propagate: no
+    backup:
+        level: DEBUG
+        handlers: [console, logfile_info, logfile_error]
+        propagate: no
+
+root:
+    level: INFO
+    handlers: [console, logfile_info, logfile_error]

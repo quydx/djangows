@@ -8,23 +8,8 @@ from cryptography.fernet import Fernet
 import utils
 
 
+utils.setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# create a console handler
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# create a file handler
-handler = logging.FileHandler('backup_log.log')
-handler.setLevel(logging.INFO)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def main(args, error=None):
@@ -43,7 +28,7 @@ def main(args, error=None):
         path = args.repo_target
         data = {}
 
-        # start a backup 
+        # start a backup
         init = init_backup(server_address, headers) 
 
         if init.status_code == 200:
@@ -57,8 +42,9 @@ def main(args, error=None):
                 # Notify send last message
                 url_last_msg = "http://{}/rest/api/result_backup/{}".format(server_address, backup_id)
                 last_msg = requests.request("GET", url_last_msg, headers=headers)
-                print(last_msg)
-                data.update(last_msg.json())
+                print(last_msg.json())
+                # {'data_change': '4096', 'sync_time': '2018-08-09T21:51:36.635'}
+                data.update(last_msg.json())  
 
                 msg = "Successfull"
             else:
@@ -75,8 +61,9 @@ def main(args, error=None):
             msg = "Unknown - " + str(init.status_code)
             logger.error(msg)
 
-        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg})
-    
+        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg,
+                     "server": server_address, "path": path})
+
     # Send backup result to Controller  
     response = requests.request("POST", url_result, data=json.dumps(data), headers=headers)
     print(response.status_code)

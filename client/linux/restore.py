@@ -6,28 +6,14 @@ import urllib.request
 import ast 
 import logging
 
+
+utils.setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# create a console handler
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# create a file handler
-handler = logging.FileHandler('restore_log.log')
-handler.setLevel(logging.INFO)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
-def main(args):
+def main(args, error=None):
     config = utils.get_config(args.config_file)
-    domain = config['AUTH']['domain']
+    domain = config['AUTH']['server_address']
     token = config['AUTH']['token']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     path = args.repo_target
@@ -69,10 +55,10 @@ def main(args):
                             "path": value['path']}
                 need_data_json = str(need_data).replace("'", '"')  # convert to json format
                 url = "http://{}/rest/api/download_data/{}/".format(domain, version)
-                
+
                 logger.debug("Get data {} - {}".format(value['path'], value['checksum']))
                 response = requests.request("GET", url, data=need_data_json, headers=headers)
-                
+
                 response_json = response.json()
                 logger.debug("Download: ")
                 logger.debug(response_json['url'])
@@ -88,7 +74,7 @@ def main(args):
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
                 data_sorted = sorted(data, key=lambda x: x[1])
 
-                # write to file 
+                # write to file
                 join_file(value['path'], data_sorted)
 
                 # add attributes

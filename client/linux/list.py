@@ -12,12 +12,12 @@ args = parser.parse_args()
 
 def main(args):
     config = utils.get_config(args.config_file)
-    domain = config['AUTH']['domain']
+    domain = config['AUTH']['server_address']
     token = config['AUTH']['token']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     list_b = list_backup(domain, headers, args.pk)
     # print(list_b.status_code)
-    print(list_b.text)
+    print(list_b.json())
 
 def list_backup(domain, headers, pk=None):
     if pk:

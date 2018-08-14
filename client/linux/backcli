@@ -5,13 +5,13 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description="Run the Backup CLI")
-parser.add_argument('--config-file', dest='config_file', default='client.conf',
+parser.add_argument('-c', '--config-file', dest='config_file', default='conf.d/client.conf',
                     help='Path of config file')
-parser.add_argument('-t', dest='repo_target', required=True,
+parser.add_argument('-t', '--target', dest='repo_target', required=True,
                     help='Path of directory need to backup')
-parser.add_argument('-s', dest='server_address',
+parser.add_argument('-s', '--server', dest='server_address',
                     help='Server backup')                 
-parser.add_argument('-j', dest='job_id',
+parser.add_argument('-j', dest='job_id', default=None,
                     help='Job in controller')     
 
 

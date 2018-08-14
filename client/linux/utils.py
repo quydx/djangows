@@ -9,7 +9,7 @@ import platform
 import psutil
 
 
-def setup_logging(default_path='logging.yaml', default_level=logging.INFO,
+def setup_logging(default_path='conf.d/logging.yaml', default_level=logging.INFO,
                   env_key='LOG_CFG'):
     """
     Setup logging configuration
@@ -110,6 +110,7 @@ class FileDir(object):
     def __init__(self, path, block_size):
         self.path = path
         self.block_size = block_size
+
     def get_fs_type(self):
         partition = {}
         for part in psutil.disk_partitions():
