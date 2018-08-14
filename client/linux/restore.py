@@ -6,6 +6,8 @@ import urllib.request
 import ast 
 import logging
 
+from cryptography.fernet import Fernet
+
 
 utils.setup_logging()
 logger = logging.getLogger(__name__)
@@ -15,6 +17,7 @@ def main(args, error=None):
     config = utils.get_config(args.config_file)
     domain = config['AUTH']['server_address']
     token = config['AUTH']['token']
+    key_decrypt = config['CRYPTO']['key']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     path = args.repo_target
     version = args.version
@@ -49,7 +52,7 @@ def main(args, error=None):
                     logger.debug("Empty file {} created".format(value['path']))
 
                 # compare checksum list 
-                f = utils.FileDir(value['path'], config)
+                f = utils.FileDir(value['path'], block_size)
                 checksum_list = f.list_checksum()
                 need_data = {"need": need_blocks(value['checksum'], checksum_list), \
                             "path": value['path']}
@@ -69,7 +72,7 @@ def main(args, error=None):
                 
                 data_existed = list(utils.read_in_blocks(file_read, \
                             list_block_id_existed(value['checksum'], checksum_list), block_size))
-                data_need = list(get_data(domain, response_json['url']))
+                data_need = list(get_data(domain, response_json['url'], key_decrypt))
            
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
                 data_sorted = sorted(data, key=lambda x: x[1])
@@ -83,7 +86,7 @@ def main(args, error=None):
             elif value['type'] == 'symlink':
                 logger.info("PASS: Restore link: {} pass".format(value['path']))
     else:
-        logger.warn("{} - {}".format(init.text, str(init.status_code)))
+        logger.error("{} - {}".format(init.text, str(init.status_code)))
 
 
 def init_restore(domain, headers, version, path):
@@ -132,12 +135,15 @@ def existed_blocks(list_pre, list_now):
     return existed
 
 
-def get_data(domain, url_dict):
+def get_data(domain, url_dict, key):
     base_url = "http://{}".format(domain)
+    cipher_suite = Fernet(key)
+    
     for block_id, url in url_dict.items():
         response = urllib.request.urlopen(base_url + url)
-        data = response.read()
-        yield (data, int(block_id))
+        data_cypher = response.read()
+        data_plain = cipher_suite.decrypt(data_cypher)
+        yield (data_plain, int(block_id))
 
 
 def join_file(path, data_chunks):

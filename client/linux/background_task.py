@@ -14,7 +14,7 @@ import utils
 
 def parse():
     parser = argparse.ArgumentParser(description="Run the Backup CLI")
-    parser.add_argument('--config-file', dest='config_file', default='client.conf',
+    parser.add_argument('--config-file', dest='config_file', default='conf.d/client.conf',
                         help='Path of config file')
     args = parser.parse_args()
 
@@ -65,7 +65,6 @@ def info_agent():
 def main():
     get_job()
     info_agent()
-            
 
 
 if __name__ == '__main__':
