@@ -16,7 +16,6 @@ upload_storage = FileSystemStorage(location=settings.UPLOAD_ROOT)
 
 def key_store_upload_to(instance, path):
     # prepend date to path
-    # print(instance.file_object)
     p = '{}/{}'.format(instance.file_object.backup.store_path.rsplit('/', 1)[1], instance.file_object.path)
     return os.path.join(p)
 
@@ -24,10 +23,8 @@ def key_store_upload_to(instance, path):
 class Backup(models.Model):
     date = models.DateTimeField()
     store_path = models.CharField(max_length=1024)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    host = models.CharField(max_length=256, help_text="IP and port server storage")
 
     def __str__(self):
         return "%s-%s" % (self.user, self.date)

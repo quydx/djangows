@@ -4,6 +4,7 @@ import datetime
 import json
 import subprocess
 import logging
+
 from pprint import pprint
 
 from django.shortcuts import render
@@ -60,7 +61,7 @@ def backup_init(request):
             now = datetime.datetime.now()
             repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
             store_path = "{}{}".format(settings.UPLOAD_ROOT, repo_name)
-            backup = Backup(user=user, date=now, store_path=store_path)
+            backup = Backup(user=user, date=now, store_path=store_path, host=request.get_host())
             backup.save()
 
             # make dir repo
@@ -267,6 +268,7 @@ def download_data(request, version=None):
                     response_data = request_data
                     print(url)
                     response_data['url'] = url
+                    response_data['server_storage'] = get_host(user, version)
                     print(response_data)
                     return JsonResponse(response_data)
                 except IndexError:
@@ -286,6 +288,11 @@ def url_by_checksum(user, version, path, list_checksum):
         url[str(data.block_id)] = data.block_data.url
 
     return url 
+
+
+def get_host(user, version):
+    backup = Backup.objects.filter(user=user)[int(version)]
+    return backup.host
 
 
 @csrf_exempt

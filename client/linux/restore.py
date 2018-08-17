@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def main(args, error=None):
     config = utils.get_config(args.config_file)
-    domain = config['AUTH']['server_address']
+    domain = args.server_address or config['AUTH']['server_address']
     token = config['AUTH']['token']
     key_decrypt = config['CRYPTO']['key']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
@@ -72,7 +72,7 @@ def main(args, error=None):
                 
                 data_existed = list(utils.read_in_blocks(file_read, \
                             list_block_id_existed(value['checksum'], checksum_list), block_size))
-                data_need = list(get_data(domain, response_json['url'], key_decrypt))
+                data_need = list(get_data(response_json['server_storage'], response_json['url'], key_decrypt))
            
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
                 data_sorted = sorted(data, key=lambda x: x[1])
@@ -136,6 +136,7 @@ def existed_blocks(list_pre, list_now):
 
 
 def get_data(domain, url_dict, key):
+    '''Download data from domain'''
     base_url = "http://{}".format(domain)
     cipher_suite = Fernet(key)
     

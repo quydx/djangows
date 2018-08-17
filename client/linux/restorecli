@@ -9,6 +9,8 @@ parser.add_argument('-c', '--config-file', dest='config_file', default='conf.d/c
                     help='Path of config file')
 parser.add_argument('-t', '--target', dest='repo_target', required=True,
                     help='Path of directory need to backup')
+parser.add_argument('-s', '--server', dest='server_address',
+                    help='Server backup')             
 parser.add_argument('-v', '--version', dest='version', required=True,
                     help='Version need to backup')                                 
 args = parser.parse_args()
