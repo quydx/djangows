@@ -111,7 +111,7 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
 
     # Call send data function if response data have new block 
     if 'blocks' in response_data and response_data['blocks'] != []:
-        print("\n send data")
+        print("\nSend data:")
         send_data(server_address, block_size, token, path, response_data['blocks'], \
                 response_data['file_object'], response_data['checksum'], key)
 
