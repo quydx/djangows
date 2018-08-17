@@ -6,7 +6,7 @@ import utils
 import logging
 from cryptography.fernet import Fernet
 
-
+print("Start backup.py")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -43,8 +43,7 @@ def main(args, error=None):
         data = {}
 
         # start a backup 
-        init = init_backup(server_address, headers) 
-
+        init = init_backup(server_address, headers)
         if init.status_code == 200:
             json_data = json.loads(init.text)
             logger.debug(json_data)
@@ -84,6 +83,7 @@ def main(args, error=None):
 def init_backup(server_address, headers):
     url = "http://{}/rest/api/initialization/".format(server_address)
     response = requests.request("GET", url, headers=headers)
+    print(response)
     return response
 
 
@@ -96,18 +96,22 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
 
     # encrypt
     cipher_suite = Fernet(key)
-    cipher_text = cipher_suite.encrypt(json.dumps(payload).encode())
+    print(payload)
 
+    cipher_text = cipher_suite.encrypt(json.dumps(payload).encode())  
     logger.debug(path)
     response = requests.request("POST", url, data=cipher_text, headers=headers)
 
     # decrypt
+    
     plain_data = cipher_suite.decrypt(response.text.encode())
     response_data = json.loads(plain_data.decode())
     logger.debug(response_data)
+    print(response_data, "--------")
 
     # Call send data function if response data have new block 
     if 'blocks' in response_data and response_data['blocks'] != []:
+        print("\n send data")
         send_data(server_address, block_size, token, path, response_data['blocks'], \
                 response_data['file_object'], response_data['checksum'], key)
 

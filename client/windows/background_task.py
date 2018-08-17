@@ -1,11 +1,11 @@
-#!/home/locvu/backup_server/env/bin/python
+#!C:\Program Files (x86)\Python37-32
 
 import threading
 import argparse
 import requests
 import os
 import json
-import logging
+#import logging
 
 from cryptography.fernet import Fernet
 
