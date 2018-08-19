@@ -59,7 +59,7 @@ def backup_init(request):
         if avail_space > settings.MIN_CAPACITY:  # Available storage greater than 1 GB
             # create repo
             now = datetime.datetime.now()
-            repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M"))
+            repo_name = str(user.username + now.strftime("%Y_%m_%d_%H_%M_%S"))
             store_path = "{}{}".format(settings.UPLOAD_ROOT, repo_name)
             backup = Backup(user=user, date=now, store_path=store_path, host=request.get_host())
             backup.save()
@@ -196,25 +196,74 @@ class DataView(APIView):
         pass
 
 
+def sub_path(path, subpath, level=1):
+    if subpath.startswith(path):
+        print(level)
+        if subpath.count('/') - path.count('/') == level:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
 def list_backup_info(request, pk=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
         if user:
             response_data = {}
+            path = request.GET.get('path') or ''
+            logger.debug(path)
             if pk:
                 try:
                     backup = Backup.objects.get(user=user, pk=pk)
-                    name = backup.store_path[len(settings.UPLOAD_ROOT):]
-                    response_data = {'pk': backup.pk, 'date': backup.date, 'name': name}
+                    file_base = File.objects.filter(backup=backup).first()  # file/dir backup first
+                    sub_paths_base = []
+                    
+                    if path.startswith(file_base.path):
+                        all_files = File.objects.filter(path__startswith=path, 
+                                                        backup=backup).values_list('path', 'type_file')
+
+                        for f in all_files:
+                            if sub_path(path, f[0]):
+                                sub_paths_base.append({"path": f[0], "type": f[1]})
+                    elif file_base.path.startswith(path):
+                        sub_paths_base.append({"path": file_base.path, "type": file_base.type_file})
+                    else:
+                        sub_paths_base.append("Not found!")
+                    response_data = {'pk': backup.pk, 'date': backup.date, 'data': sub_paths_base}
                 except Backup.DoesNotExist:
                     return HttpResponse('DoesNotExist', status=404)
+
+            elif path:  # not pk => return list pk
+                backups = Backup.objects.filter(user=user)
+                count = 0
+                for backup in backups:
+                    file_base = File.objects.filter(backup=backup).first()
+                    paths = []
+                    logger.debug(file_base.path)
+                    if path.startswith(file_base.path):
+                        all_files = File.objects.filter(path__startswith=path, 
+                                                        backup=backup).values_list('path', 'type_file')
+
+                        for f in all_files:
+                            if sub_path(path, f[0], 0):
+                                paths.append({"path": f[0], "type": f[1]})
+                    elif file_base.path.startswith(path):
+                        paths.append({"path": file_base.path, "type": file_base.type_file})
+                    else:
+                        logger.debug("continue")
+                        continue
+
+                    response_data[count] = {'pk': backup.pk, 'date': backup.date, 'data': paths}
+                    count += 1
             else:
                 backup = Backup.objects.filter(user=user)
                 values = backup.values('pk', 'date', 'store_path')
                 count = 0
                 for value in values:
-                    name = value['store_path'][len(settings.UPLOAD_ROOT):]
-                    response_data[count] = {'pk': value['pk'], 'date': value['date'], 'name': name}
+                    name = value['store_path'][len(settings.UPLOAD_ROOT):]   # ex: "pecado2018_08_17_10_40_33"
+                    response_data[count] = {'pk': value['pk'], 'date': value['date'], 'data': name}
                     count += 1
             return JsonResponse(response_data)
         else:

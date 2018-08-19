@@ -37,6 +37,7 @@ def main(args, error=None):
             if json_data['status'] == "ok":
                 logger.info("Ready to backup")
                 backup_id = json_data['backup_id']
+                
                 send_metadata(server_address, block_size, token, path, backup_id, key)
 
                 # Notify send last message

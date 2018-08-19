@@ -1,42 +1,33 @@
 import requests
-import utils
-import argparse
 import logging
-import utils 
+import json
+
+import utils
 
 
 utils.setup_logging()
 logger = logging.getLogger(__name__)
 
 
-parser = argparse.ArgumentParser(description="Run the list backups")
-parser.add_argument('--config-file', dest='config_file', default='conf.d/client.conf',
-                    help='Path of config file')
-parser.add_argument('--pk', dest='pk', help='Index of backup')             
-args = parser.parse_args()
-
-
-def main(args):
+def main(args, error=None):
     config = utils.get_config(args.config_file)
     domain = config['AUTH']['server_address']
     token = config['AUTH']['token']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
-    list_b = list_backup(domain, headers, args.pk)
+    
+    list_b = list_backup(domain, headers, args.pk, args.repo_target)
     if list_b.status_code == 200:
-        logger.info(list_b.text)
+        print(json.dumps(list_b.json(), indent=4, sort_keys=True))
     else:
         logger.error(list_b.text)
     return
 
 
-def list_backup(domain, headers, pk=None):
+def list_backup(domain, headers, pk=None, target=None):
+    query = {"path": target}
     if pk:
         url = "http://{}/rest/api/list/{}".format(domain, pk)
     else: 
         url = "http://{}/rest/api/list/".format(domain)
-    response = requests.request("GET", url, headers=headers)
+    response = requests.request("GET", url, headers=headers, params=query)
     return response
-
-
-if __name__ == '__main__':
-    main(args)
