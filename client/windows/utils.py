@@ -35,7 +35,7 @@ def get_acl(path):
     output = subprocess.check_output(['icacls', path, "/save", aclfile])
     acl_rules = open(aclfile, 'rb').read()
     os.remove(aclfile)
-    return acl_rules
+    return acl_rules.decode()
 
 
 def set_acl(path, acl_rules):
@@ -44,8 +44,9 @@ def set_acl(path, acl_rules):
     Input : get_acl function 
     """
 
+    acl = acl_rules.encode()
     aclfile = "aclfile.txt"
-    open(aclfile, 'wb').write(acl_rules)
+    open(aclfile, 'wb').write(acl)
     path_root = os.path.dirname(os.path.abspath(path))
     output = subprocess.check_output(['icacls', path_root, "/restore", aclfile])
     os.remove(aclfile)
@@ -117,12 +118,23 @@ class FileDir(object):
             if path in partition:
                 return partition[path]
         return "unknown"
+
+    def convert_wintolinux_path(self, path):
+        p = ("".join(self.path.split(':'))).split('\\')
+        lpath = '/'.join(p)
+        return lpath
+
+
+    def convert_linuxtowin_path(self, path):
+        p = "\\".join(path.split('/'))
+        wpath = p[0] + ':' + p[1:]
+        return wpath
         
     def get_metadata(self):
         """
             Return dict of metadata
         """
-        data = {'name': os.path.basename(self.path), 'path': os.path.abspath(self.path), 'fs': self.get_fs_type(), 'attr':{}}
+        data = {'name': os.path.basename(self.path), 'path': self.convert_wintolinux_path(os.path.abspath(self.path)), 'fs': self.get_fs_type(), 'attr':{}}
         if os.path.islink(self.path):
             real_path = os.path.realpath(self.path)
             data['type'] = "symlink"
