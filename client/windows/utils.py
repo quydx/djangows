@@ -99,6 +99,18 @@ def get_info_agent():
     return data
 
 
+def convert_wintolinux_path(path):
+    p = ("".join(os.path.abspath(path).split(':'))).split('\\')
+    lpath = '/'.join(p)
+    return lpath
+
+
+def convert_linuxtowin_path(path):
+    p = "\\".join(path.split('/'))
+    wpath = p[0] + ':' + p[1:]
+    return os.path.abspath(wpath)
+
+
 class FileDir(object):
     def __init__(self, path, block_size):
         self.path = path
@@ -118,23 +130,12 @@ class FileDir(object):
             if path in partition:
                 return partition[path]
         return "unknown"
-
-    def convert_wintolinux_path(self, path):
-        p = ("".join(self.path.split(':'))).split('\\')
-        lpath = '/'.join(p)
-        return lpath
-
-
-    def convert_linuxtowin_path(self, path):
-        p = "\\".join(path.split('/'))
-        wpath = p[0] + ':' + p[1:]
-        return wpath
         
     def get_metadata(self):
         """
             Return dict of metadata
         """
-        data = {'name': os.path.basename(self.path), 'path': self.convert_wintolinux_path(os.path.abspath(self.path)), 'fs': self.get_fs_type(), 'attr':{}}
+        data = {'name': os.path.basename(self.path), 'path': convert_wintolinux_path(self.path), 'fs': self.get_fs_type(), 'attr':{}}
         if os.path.islink(self.path):
             real_path = os.path.realpath(self.path)
             data['type'] = "symlink"

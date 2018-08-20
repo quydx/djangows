@@ -1,0 +1,93 @@
+#!C:\Program Files (x86)\Python37-32
+import os
+import sys
+import argparse
+# import getpass
+from crontab import CronTab
+import logging
+import utils
+
+
+def main():
+    utils.setup_logging()
+    logger = logging.getLogger(__name__)
+
+    parser = argparse.ArgumentParser(description="Schedule for backup, using crontab")
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    # subcommand : add
+    parser_add = subparsers.add_parser('add', help='addition a job to crontab')
+    parser_add.add_argument('path', help='target to backup')
+    parser_add.add_argument('-t', '--time', dest='time', required=True, help='time to backup')
+    parser_add.add_argument('-c', '--comment', dest='comment', help='comment of job')
+
+    # subcommand : list
+    parser_list = subparsers.add_parser('list', help='list jobs in crontab')
+
+    # subcommand : edit
+    parser_edit = subparsers.add_parser('edit', help='edit a job in crontab')
+    parser_edit.add_argument('path', help='target to backup')
+    parser_edit.add_argument('-t', '--time', dest='time', help='time to backup')
+    parser_edit.add_argument('-c', '--comment', dest='comment', help='comment of job')
+
+    # subcommand : del
+    parser_del = subparsers.add_parser('del', help='delete a job in crontab')
+    parser_del.add_argument('path', help='target to backup')
+    parser_del.add_argument('-c', '--comment', dest='comment', help='comment of job')
+
+
+    args = parser.parse_args()
+
+    PWD = os.path.dirname(os.path.realpath(__file__))
+
+    try:
+        subcommand = sys.argv[1]
+    except IndexError as e:
+        logger.error(e)
+        exit(1)
+
+    # username = getpass.getuser()
+    my_cron = CronTab(user=True)
+
+    if subcommand == 'add':
+        # execute crontab to addition job
+        job_cmd = PWD + '/backcli ' + args.path
+        job = my_cron.new(command=job_cmd , comment=args.comment)
+        job.setall(args.time)
+        my_cron.write()
+    elif subcommand == 'list':
+        # list job in crontab file
+        for job in my_cron:
+            print(job)
+    elif subcommand == 'edit':
+        # edit job
+        job_cmd = PWD + '/backcli ' + args.path
+        for job in my_cron:
+            if job.command == job_cmd:
+                job.setall(args.time)
+                if args.comment != '':
+                    job.set_comment(args.comment)
+                my_cron.write()
+                print("Change job success")
+                logger.info(job.command + "changed")
+                break
+        else:
+            print("Path does not exitsted in job list")
+    elif subcommand == 'del':
+        # del job
+        job_cmd = PWD + '/backcli ' + args.path
+        for job in my_cron:
+            if job.command == job_cmd:
+                my_cron.remove(job)
+                my_cron.write()
+                print("Delete job success")
+                logger.info(job.command + "deleted")
+                break
+        else:
+            print("Path does not exitsted in job list")
+    else:
+        parser.print_help()
+
+
+if __name__ == '__main__':
+    main()
