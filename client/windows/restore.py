@@ -8,6 +8,7 @@ import urllib.request
 import logging
 import stat
 import subprocess
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -36,6 +37,7 @@ def main(args):
     path = args.repo_target
     version = args.version
     block_size = int(config['FILE']['block_size'])
+    key = config['CRYPTO']['key']
 
     # start a restore
     logger.info("Start restore session")
@@ -94,7 +96,7 @@ def main(args):
                 data_sorted = sorted(data, key=lambda x: x[1])
 
                 # write to file 
-                join_file(wpath, data_sorted)
+                join_file(wpath, data_sorted, key)
 
                 # add attributes
                 add_attribute(wpath, value['attr'])    
@@ -163,10 +165,13 @@ def get_data(server_address, url_dict):
         yield (data, int(block_id))
 
 
-def join_file(path, data_chunks):
+def join_file(path, data_chunks, key):
     os.chmod( path, stat.S_IWRITE)
     subprocess.check_call(["attrib","-H",path])
+
+    cipher_suite = Fernet(key)
+
     file_write = open(path, 'wb')
     for chunk in data_chunks:
-        file_write.write(chunk[0])
+        file_write.write(cipher_suite.decrypt(chunk[0]))
     file_write.close()
