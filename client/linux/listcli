@@ -11,11 +11,21 @@ parser.add_argument('-t', '--target', dest='repo_target', help='Path to file res
 args = parser.parse_args()
 
 
+# check file config
 if os.path.exists(args.config_file):
     pass
 else:
     print("File config does not exist ")
     exit(1)
+
+
+# check type pk is `number`
+if args.pk:
+    try:
+        val = int(args.pk)
+    except ValueError:
+        print("PK's not an int!") 
+        exit(1)
 
 
 if args.repo_target and args.repo_target.endswith('/'):

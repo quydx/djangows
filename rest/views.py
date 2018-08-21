@@ -270,16 +270,15 @@ def list_backup_info(request, pk=None):
             return HttpResponse('Unauthorized', status=401)
 
 
-def restore_init(request, version=None):
+def restore_init(request, pk=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
         
-        if version:
+        if pk:
             try:
-                path = request.GET.get('path')
-                # print(version)
+                path = request.GET.get('path') or ''
                 logger.debug(path)
-                backup = Backup.objects.filter(user=user)[int(version)]
+                backup = Backup.objects.get(user=user, pk=int(pk))
                 files = File.objects.filter(backup=backup, path__startswith=path)
                 if files:
                     response_data = {}
@@ -295,41 +294,41 @@ def restore_init(request, version=None):
                     return HttpResponse('Path Does Not Exist', status=404)
 
             except IndexError:
-                return HttpResponse('Version Does Not Exist', status=404)
+                return HttpResponse('Pk Does Not Exist', status=404)
         else:
-            return HttpResponse("Missing version definite", status=412)
+            return HttpResponse("Missing pk definite", status=412)
 
 
 @csrf_exempt
-def download_data(request, version=None):
+def download_data(request, pk=None):
     if request.method == 'GET':
         user = get_user_by_token(request)
         if user:
-            if version:
+            if pk:
                 try:
                     body = request.body.decode("utf-8")  # convert byte to string
                     print(body)
                     request_data = json.loads(body)
 
                     # data = FileData.objects.get(file_object=f, checksum=checksum)
-                    url = url_by_checksum(user, version, request_data['path'],
+                    url = url_by_checksum(user, pk, request_data['path'],
                                         request_data['need'].values())
                     response_data = request_data
                     print(url)
                     response_data['url'] = url
-                    response_data['server_storage'] = get_host(user, version)
+                    response_data['server_storage'] = get_host(user, pk)
                     print(response_data)
                     return JsonResponse(response_data)
                 except IndexError:
-                    return HttpResponse('Version Does Not Exist', status=404)
+                    return HttpResponse('Pk Does Not Exist', status=404)
             else:
-                return HttpResponse("Missing version definite", status=412)
+                return HttpResponse("Missing pk definite", status=412)
         else:
             return HttpResponse('Unauthorized', status=401)
 
 
-def url_by_checksum(user, version, path, list_checksum):
-    backup = Backup.objects.filter(user=user)[int(version)]
+def url_by_checksum(user, pk, path, list_checksum):
+    backup = Backup.objects.get(user=user, pk=int(pk))
     f = File.objects.get(backup=backup, path=path)
     datas = FileData.objects.filter(file_object=f, checksum__in=list_checksum)
     url = {}
@@ -339,8 +338,8 @@ def url_by_checksum(user, version, path, list_checksum):
     return url 
 
 
-def get_host(user, version):
-    backup = Backup.objects.filter(user=user)[int(version)]
+def get_host(user, pk):
+    backup = Backup.objects.get(user=user, pk=int(pk))
     return backup.host
 
 
