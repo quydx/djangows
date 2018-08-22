@@ -66,7 +66,8 @@ def main(args):
                     basedir = os.path.dirname(wpath)
                     if not os.path.exists(basedir):
                         os.makedirs(basedir, exist_ok=True) 
-                    os.mknod(wpath)     
+                    print("wpath: ",wpath)
+                    open(wpath, 'wb')
                     logger.debug("Empty file {} created".format(wpath))
 
                 # compare checksum list 

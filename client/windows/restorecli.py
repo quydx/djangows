@@ -28,11 +28,6 @@ except ValueError:
     print("Version's not an int!") 
     exit(1)
     
-
-if os.path.exists(args.repo_target):
-    if args.repo_target.endswith('\\'):
-        args.repo_target = args.repo_target[:len(args.repo_target)-1]
-    main(args)
-else:
-    print("Specified path does not exist ")
-
+if args.repo_target and args.repo_target.endswith('\\'):
+    args.repo_target = args.repo_target[:len(args.repo_target)-1]
+main(args)

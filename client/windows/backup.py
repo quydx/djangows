@@ -44,6 +44,8 @@ def main(args, error=None):
 
         # start a backup 
         init = init_backup(server_address, headers)
+        print(init.status_code)
+        
         if init.status_code == 200:
             json_data = json.loads(init.text)
             logger.debug(json_data)
@@ -96,8 +98,6 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
 
     # encrypt
     cipher_suite = Fernet(key)
-    print(payload)
-
     cipher_text = cipher_suite.encrypt(json.dumps(payload).encode())  
     logger.debug(path)
     response = requests.request("POST", url, data=cipher_text, headers=headers)
@@ -107,7 +107,6 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
     plain_data = cipher_suite.decrypt(response.text.encode())
     response_data = json.loads(plain_data.decode())
     logger.debug(response_data)
-    print(response_data, "--------")
 
     # Call send data function if response data have new block 
     if 'blocks' in response_data and response_data['blocks'] != []:
