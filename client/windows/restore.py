@@ -4,7 +4,6 @@ import json
 import utils
 from utils import FileDir
 import urllib.request
-#import ast 
 import logging
 import stat
 import subprocess
@@ -35,15 +34,13 @@ def main(args):
     token = config['AUTH']['token']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     path = args.repo_target
-    version = args.version
+    pk = args.pk
     block_size = int(config['FILE']['block_size'])
     key = config['CRYPTO']['key']
 
     # start a restore
     logger.info("Start restore session")
-    print(path)
-    init = init_restore(server_address, headers, version, path)
-    print(init.status_code)
+    init = init_restore(server_address, headers, pk, path)
     if init.status_code == 200:
         # logger.debug(json.dumps(init.json(), indent=4))
         for value in init.json().values():
@@ -76,7 +73,7 @@ def main(args):
                 need_data = {"need": need_blocks(value['checksum'], checksum_list), \
                             "path": value['path']}
                 need_data_json = str(need_data).replace("'", '"')  # convert to json format
-                url = "http://{}/rest/api/download_data/{}/".format(server_address, version)
+                url = "http://{}/rest/api/download_data/{}/".format(server_address, pk)
                 
                 logger.debug("Get data {} - {}".format(wpath, value['checksum']))
                 response = requests.request("GET", url, data=need_data_json, headers=headers)
@@ -108,10 +105,9 @@ def main(args):
         logger.warn("{} - {}".format(init.text, str(init.status_code)))
 
 
-def init_restore(server_address, headers, version, path):
-    url = "http://{}/rest/api/restore/{}".format(server_address, version)
+def init_restore(server_address, headers, pk, path):
+    url = "http://{}/rest/api/restore/{}".format(server_address, pk)
     lpath = utils.convert_wintolinux_path(path)
-    print(lpath)
     query = {"path": lpath}
     response = requests.request("GET", url, headers=headers, params=query)
     return response
@@ -138,7 +134,7 @@ def list_block_id_existed(list_pre, list_now):
 
 def need_blocks(list_pre, list_now):
     """
-    The block is not available in the current version
+    The block is not available in the current pk
     return: dict  
     """
     addition_checksum = list(set(list_pre) - set(list_now))
@@ -149,7 +145,7 @@ def need_blocks(list_pre, list_now):
 
 def existed_blocks(list_pre, list_now):
     """
-    The block existed in the current version
+    The block existed in the current pk
     return: dict with position of previous verison  
     """
     existed_checksum = list(set(list_now) & set(list_pre))
@@ -167,8 +163,8 @@ def get_data(server_address, url_dict):
 
 
 def join_file(path, data_chunks, key):
-    os.chmod( path, stat.S_IWRITE)
-    subprocess.check_call(["attrib","-H",path])
+    os.chmod( path, stat.S_IWRITE) # file read only 
+    subprocess.check_call(["attrib","-H",path]) # file hidden
 
     cipher_suite = Fernet(key)
 

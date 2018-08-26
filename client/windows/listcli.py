@@ -4,7 +4,7 @@ from list import main
 import argparse
 
 parser = argparse.ArgumentParser(description="Run the list backups")
-parser.add_argument('-c', '--config-file', dest='config_file', default='conf.d/client.conf',
+parser.add_argument('-c', '--config-file', dest='config_file', default='client.conf',
                     help='Path of config file')
 parser.add_argument('-p', '--pk', dest='pk', help='Index of backup')
 parser.add_argument('-t', '--target', dest='repo_target', help='Path to file restore')

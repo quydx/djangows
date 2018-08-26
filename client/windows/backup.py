@@ -44,7 +44,7 @@ def main(args, error=None):
 
         # start a backup 
         init = init_backup(server_address, headers)
-        print(init.status_code)
+        #print("init.status", init.status_code)
         
         if init.status_code == 200:
             json_data = json.loads(init.text)
@@ -75,7 +75,8 @@ def main(args, error=None):
             msg = "Unknown - " + str(init.status_code)
             logger.error(msg)
 
-        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg})
+        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg,
+                     "server":server_address, "path": path})
     
     # Send backup result to Controller  
     response = requests.request("POST", url_result, data=json.dumps(data), headers=headers)

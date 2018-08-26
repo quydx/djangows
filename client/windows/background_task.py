@@ -25,7 +25,7 @@ def parse():
         exit(1)
 
 def get_job():
-    threading.Timer(5, get_job).start() # repeat function every 5s
+    threading.Timer(60, get_job).start() # repeat function every 5s
     args = parse()
     config = utils.get_config(args.config_file)
     address = config['CONTROLLER']['address']
@@ -42,14 +42,14 @@ def get_job():
     response_data = json.loads(plain_data.decode())
     print(response_data)
     for job in response_data['jobs']:
-        os.system(".\backcli -t " + job['path'] + \
+        os.system("python backcli.py -t " + job['path'] + \
                   " -s " + job['server'] + \
                   " --config-file " + args.config_file + \
                   " -j " + str(job['job_id']))
 
 
 def info_agent():
-    threading.Timer(60, info_agent).start()
+    #threading.Timer(60, info_agent).start()
     print("Send information agent")
     args = parse()
     config = utils.get_config(args.config_file)
