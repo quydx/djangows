@@ -1,12 +1,10 @@
 #!C:\Program Files (x86)\Python37-32
-
 import threading
 import argparse
 import requests
 import os
 import json
 #import logging
-
 from cryptography.fernet import Fernet
 
 import utils

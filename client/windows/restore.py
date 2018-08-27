@@ -79,26 +79,33 @@ def main(args):
                 response = requests.request("GET", url, data=need_data_json, headers=headers)
                 
                 response_json = response.json()
-                logger.debug("Download: ")
+                logger.debug("Download")
                 logger.debug(response_json['url'])
-                logger.debug("Existed:")
+                logger.debug("Existed")
                 logger.debug(existed_blocks(value['checksum'], checksum_list))
 
                 file_read = open(wpath, 'rb')
-                
+                print("checksum:", value['checksum'])
                 data_existed = list(utils.read_in_blocks(file_read, \
                             list_block_id_existed(value['checksum'], checksum_list), block_size))
+                print("data_existed: ", data_existed)
                 data_need = list(get_data(server_address, response_json['url']))
-           
-                data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
-                data_sorted = sorted(data, key=lambda x: x[1])
+                print("data_need: ", data_need)
+                if data_need != []:           
+                    data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
 
-                # write to file 
-                join_file(wpath, data_sorted, key)
+                    print("data: ", data)
+                    data_sorted = sorted(data, key=lambda x: x[1])
 
-                # add attributes
-                add_attribute(wpath, value['attr'])    
-                logger.info("DONE: {} restore done".format(wpath))
+                    # write to file 
+                    join_file(wpath, data_sorted, key)
+
+                    # add attributes
+                    add_attribute(wpath, value['attr'])    
+                    logger.info("DONE: {} restore done".format(wpath))
+                else:
+                    logger.info("DONE: {} not change".format(wpath))
+
             elif value['type'] == 'symlink':
                 logger.info("PASS: Restore link: {} pass".format(wpath))
     else:
@@ -120,6 +127,7 @@ def add_attribute(path, attr):
     """
     os.chmod(path, int(attr['mode']))
     #os.chown(path, int(attr['uid']), int(attr['gid'])) 
+    subprocess.call(['icacls.exe', path, '/setowner', attr['uname']])
     os.utime(path,(float(attr['create_time']), float(attr['modify_time'])))
     #utils.set_acl(path, ast.literal_eval(attr['acl']))
     utils.set_acl(path, attr['acl'])
@@ -169,6 +177,7 @@ def join_file(path, data_chunks, key):
     cipher_suite = Fernet(key)
 
     file_write = open(path, 'wb')
+    print('data_chunks: ', data_chunks)
     for chunk in data_chunks:
         file_write.write(cipher_suite.decrypt(chunk[0]))
     file_write.close()

@@ -2,7 +2,6 @@ import os
 import requests
 import json
 import utils
-
 import logging
 from cryptography.fernet import Fernet
 
@@ -26,7 +25,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def main(args, error=None):
+def main(args, repo_target, error=None):
     config = utils.get_config(args.config_file)
     ctl_address = config['CONTROLLER']['address']
     url_result = "http://{}/api/result-backup/".format(ctl_address)
@@ -39,7 +38,7 @@ def main(args, error=None):
         data = {"job_id": args.job_id, "status_code": 404, "msg": error}
     else:
         block_size = int(config['FILE']['block_size'])
-        path = args.repo_target # Path of directory need to backup
+        path = repo_target # Path of directory need to backup
         data = {}
 
         # start a backup 
