@@ -21,12 +21,13 @@ def main(args, error=None):
     key_decrypt = config['CRYPTO']['key']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     path = args.repo_target
-    pk = args.pk
+    backup_id = args.backup_id
     block_size = int(config['FILE']['block_size'])
 
     # start a restore
     logger.info("Start restore session")
-    init = init_restore(domain, headers, pk, path)
+    init = init_restore(domain, headers, backup_id, path)
+    data = {}
 
     if init.status_code == 200:
         # logger.debug(json.dumps(init.json(), indent=4))
@@ -36,11 +37,11 @@ def main(args, error=None):
 
                 # make directory recusive 
                 if not os.path.isdir(value['path']):
-                    os.makedirs(path, exist_ok=True)   
+                    os.makedirs(path, exist_ok=True)
                     logger.debug("Directory {} created".format(value['path']))
 
                 # add attributes
-                add_attribute(value['path'], value['attr'])    
+                add_attribute(value['path'], value['attr'])
                 logger.info("DONE: {} restore done".format(value['path']))
             elif value['type'] == 'file':
                 if not os.path.isfile(value['path']):
@@ -48,8 +49,8 @@ def main(args, error=None):
                     # touch empty file 
                     basedir = os.path.dirname(value['path'])
                     if not os.path.exists(basedir):
-                        os.makedirs(basedir, exist_ok=True) 
-                    os.mknod(value['path'])     
+                        os.makedirs(basedir, exist_ok=True)
+                    os.mknod(value['path'])
                     logger.debug("Empty file {} created".format(value['path']))
 
                 # compare checksum list 
@@ -58,7 +59,7 @@ def main(args, error=None):
                 need_data = {"need": need_blocks(value['checksum'], checksum_list), \
                             "path": value['path']}
                 need_data_json = str(need_data).replace("'", '"')  # convert to json format
-                url = "http://{}/rest/api/download_data/{}/".format(domain, pk)
+                url = "http://{}/rest/api/download_data/{}/".format(domain, backup_id)
 
                 logger.debug("Get data {} - {}".format(value['path'], value['checksum']))
                 response = requests.request("GET", url, data=need_data_json, headers=headers)
@@ -87,11 +88,20 @@ def main(args, error=None):
             elif value['type'] == 'symlink':
                 logger.info("PASS: Restore link: {} pass".format(value['path']))
     else:
-        logger.error("{} - {}".format(init.text, str(init.status_code)))
+        logger.error("{}".format(str(init.status_code)))
+
+    result_restore = {"job_id": args.job_id, "status_code": init.status_code,
+                      "backup_id": args.backup_id}
+
+    # Send restore result to Controller
+    ctl_address = config['CONTROLLER']['address']
+    url_result = "http://{}/api/result-restore/".format(ctl_address)
+    response = requests.request("POST", url_result, data=json.dumps(result_restore), headers=headers)
+    logger.debug("Send result to Controller: " + str(response.status_code))
 
 
-def init_restore(domain, headers, pk, path):
-    url = "http://{}/rest/api/restore/{}".format(domain, pk)
+def init_restore(domain, headers, backup_id, path):
+    url = "http://{}/rest/api/restore/{}".format(domain, backup_id)
     query = {"path": path}
     response = requests.request("GET", url, headers=headers, params=query)
     return response

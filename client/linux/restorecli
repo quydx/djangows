@@ -11,9 +11,12 @@ parser.add_argument('-t', '--target', dest='repo_target',
                     help='Path of directory need to backup')
 parser.add_argument('-s', '--server', dest='server_address',
                     help='Server backup')             
-parser.add_argument('-p', '--pk', dest='pk', required=True,
-                    help='Primary key need to backup')                                 
+parser.add_argument('-p', '--pk', dest='backup_id', required=True,
+                    help='Primary key need to backup')
+parser.add_argument('-j', dest='job_id', default=None,
+                    help='Job in controller')                                
 args = parser.parse_args()
+
 
 # check file config
 if os.path.exists(args.config_file):
@@ -25,7 +28,7 @@ else:
 
 # check type pk is `number`
 try:
-    val = int(args.pk)
+    val = int(args.backup_id)
 except ValueError:
     print("PK's not an int!") 
     exit(1)

@@ -15,4 +15,6 @@ urlpatterns = [
     url(r'^api/listuser/$', views.list_user, name='list_user'),
     url(r'^api/removeuser/$', views.remove_user, name='remove_user'),
     url(r'^api/result_backup/(?P<backup_id>\d+)/$', views.result_backup, name='result_backup'),
+    url(r'^api/get-paths/(?P<backup_id>\d+)/$', views.get_paths, name='get_paths'),
+    url(r'^api/get-backups/$', views.get_backups, name='get_backups'),
 ]

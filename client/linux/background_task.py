@@ -24,7 +24,12 @@ def parse():
         print("File config does not exist ")
         exit(1)
 
+
+
 def get_job():
+    '''
+    Get backup and restore job from controller node
+    '''
     threading.Timer(5, get_job).start()
     args = parse()
     config = utils.get_config(args.config_file)
@@ -42,10 +47,16 @@ def get_job():
     response_data = json.loads(plain_data.decode())
     print(response_data)
     for job in response_data['jobs']:
-        os.system("./backcli -t " + job['path'] + \
-                  " -s " + job['server'] + \
-                  " --config-file " + args.config_file + \
-                  " -j " + str(job['job_id']))
+        if job['job_type'] == "backup":
+            os.system("./backcli -t " + job['path'] + \
+                    " -s " + job['server'] + \
+                    " -c " + args.config_file + \
+                    " -j " + str(job['job_id']))
+        elif job['job_type'] == "restore":
+            os.system("./restorecli -t " + job['path'] + \
+                    " -c " + args.config_file + \
+                    " -p " + str(job['backup_id']) + \
+                    " -j " + str(job['job_id']))
 
 
 def info_agent():
