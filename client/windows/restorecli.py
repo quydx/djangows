@@ -9,8 +9,10 @@ parser.add_argument('--config-file', dest='config_file', default='client.conf',
                     help='Path of config file')
 parser.add_argument('--target', dest='repo_target', required=True,
                     help='Path of directory need to backup')
-parser.add_argument('--version', dest='version', required=True,
-                    help='Version need to backup')                                 
+parser.add_argument('-s', '--server', dest='server_address',
+                    help='Server backup')             
+parser.add_argument('-p', '--pk', dest='pk', required=True,
+                    help='Primary key need to backup')                                
 args = parser.parse_args()
 
 # check file config
@@ -21,18 +23,13 @@ else:
     exit(1)
 
 
-# check type version is `number`
+# check type pk is `number`
 try:
-    val = int(args.version)
+    val = int(args.pk)
 except ValueError:
-    print("Version's not an int!") 
+    print("PK's not an int!") 
     exit(1)
     
-
-if os.path.exists(args.repo_target):
-    if args.repo_target.endswith('\\'):
-        args.repo_target = args.repo_target[:len(args.repo_target)-1]
-    main(args)
-else:
-    print("Specified path does not exist ")
-
+if args.repo_target and args.repo_target.endswith('\\'):
+    args.repo_target = args.repo_target[:len(args.repo_target)-1]
+main(args)

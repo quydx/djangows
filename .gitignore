@@ -3,7 +3,7 @@
 *.log
 *~
 .*
-
+*.conf
 djangows/settings.py
 **/migrations/
 **/__pycache__/

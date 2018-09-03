@@ -6,6 +6,7 @@ import subprocess
 import logging.config
 import yaml
 import platform
+import win32security
 
 
 def setup_logging(default_path='logging.yaml', default_level=logging.INFO,
@@ -151,6 +152,7 @@ class FileDir(object):
         attr['modify_time'] = stat.st_mtime  # modify time
         attr['create_time'] = stat.st_ctime  # create time
         attr['uid'] = stat.st_uid            # user ID
+        attr['uname'] = get_owner(self.path)   # username
         attr['gid'] = stat.st_gid            # group ID
         attr['mode'] = stat.st_mode          # inode protection mode
 
@@ -181,3 +183,14 @@ class FileDir(object):
                 checksum_list.append(hash_md5.hexdigest())
                 chunk = file.read(self.block_size)
         return checksum_list
+
+
+def get_owner(path):
+        """
+            Return username of owner file
+        """
+        sd = win32security.GetFileSecurity(path, win32security.OWNER_SECURITY_INFORMATION)
+        sid = sd.GetSecurityDescriptorOwner()
+        user, domain, type = win32security.LookupAccountSid(None, sid)
+        return user
+

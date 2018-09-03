@@ -2,7 +2,6 @@ import os
 import requests
 import json
 import utils
-
 import logging
 from cryptography.fernet import Fernet
 
@@ -26,7 +25,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def main(args, error=None):
+def main(args, repo_target, error=None):
     config = utils.get_config(args.config_file)
     ctl_address = config['CONTROLLER']['address']
     url_result = "http://{}/api/result-backup/".format(ctl_address)
@@ -39,11 +38,13 @@ def main(args, error=None):
         data = {"job_id": args.job_id, "status_code": 404, "msg": error}
     else:
         block_size = int(config['FILE']['block_size'])
-        path = args.repo_target # Path of directory need to backup
+        path = repo_target # Path of directory need to backup
         data = {}
 
         # start a backup 
         init = init_backup(server_address, headers)
+        #print("init.status", init.status_code)
+        
         if init.status_code == 200:
             json_data = json.loads(init.text)
             logger.debug(json_data)
@@ -73,7 +74,8 @@ def main(args, error=None):
             msg = "Unknown - " + str(init.status_code)
             logger.error(msg)
 
-        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg})
+        data.update({"job_id": args.job_id, "status_code": init.status_code, "msg": msg,
+                     "server":server_address, "path": path})
     
     # Send backup result to Controller  
     response = requests.request("POST", url_result, data=json.dumps(data), headers=headers)
@@ -96,8 +98,6 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
 
     # encrypt
     cipher_suite = Fernet(key)
-    print(payload)
-
     cipher_text = cipher_suite.encrypt(json.dumps(payload).encode())  
     logger.debug(path)
     response = requests.request("POST", url, data=cipher_text, headers=headers)
@@ -107,7 +107,6 @@ def send_metadata(server_address, block_size, token, path, backup_id, key):
     plain_data = cipher_suite.decrypt(response.text.encode())
     response_data = json.loads(plain_data.decode())
     logger.debug(response_data)
-    print(response_data, "--------")
 
     # Call send data function if response data have new block 
     if 'blocks' in response_data and response_data['blocks'] != []:
