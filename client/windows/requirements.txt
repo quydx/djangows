@@ -1,2 +1,6 @@
-requests==2.18.4
-psutil==5.4.5
+requests==2.19.1
+psutil==5.4.6
+PyYAML==3.13
+pycparser==2.18
+cryptography==2.2.2
+pywin32==223

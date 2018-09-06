@@ -91,12 +91,17 @@ def main(args):
                 print("data_existed: ", data_existed)
                 data_need = list(get_data(server_address, response_json['url']))
                 print("data_need: ", data_need)
-                if data_need != []:           
-                    data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
+                 
+                print("data_need")          
+                data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
 
-                    print("data: ", data)
-                    data_sorted = sorted(data, key=lambda x: x[1])
+                print("data: ", data)
+                data_sorted = sorted(data, key=lambda x: x[1])
 
+                os.chmod(wpath, stat.S_IWRITE) # file read only 
+                subprocess.check_call(["attrib","-H",wpath]) # file hidden
+
+                if data_need != []:
                     # write to file 
                     join_file(wpath, data_sorted, key)
 
@@ -104,6 +109,7 @@ def main(args):
                     add_attribute(wpath, value['attr'])    
                     logger.info("DONE: {} restore done".format(wpath))
                 else:
+                    add_attribute(wpath, value['attr'])
                     logger.info("DONE: {} not change".format(wpath))
 
             elif value['type'] == 'symlink':
@@ -171,8 +177,8 @@ def get_data(server_address, url_dict):
 
 
 def join_file(path, data_chunks, key):
-    os.chmod( path, stat.S_IWRITE) # file read only 
-    subprocess.check_call(["attrib","-H",path]) # file hidden
+#    os.chmod( path, stat.S_IWRITE) # file read only 
+#    subprocess.check_call(["attrib","-H",path]) # file hidden
 
     cipher_suite = Fernet(key)
 
