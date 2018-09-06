@@ -198,7 +198,6 @@ class DataView(APIView):
 
 def sub_path(path, subpath, level=1):
     if subpath.startswith(path):
-        print(level)
         if subpath.count('/') - path.count('/') == level:
             return True
         else:
@@ -213,7 +212,7 @@ def list_backup_info(request, pk=None):
         if user:
             response_data = {}
             path = request.GET.get('path') or ''
-            logger.debug(path)
+            logger.debug("Path: " + path)
             if pk:
                 try:
                     backup = Backup.objects.get(user=user, pk=pk)
@@ -258,13 +257,14 @@ def list_backup_info(request, pk=None):
                     response_data[count] = {'pk': backup.pk, 'date': backup.date, 'data': paths}
                     count += 1
             else:
-                backup = Backup.objects.filter(user=user)
-                values = backup.values('pk', 'date', 'store_path')
+                backups = Backup.objects.filter(user=user)
                 count = 0
-                for value in values:
-                    name = value['store_path'][len(settings.UPLOAD_ROOT):]   # ex: "pecado2018_08_17_10_40_33"
-                    response_data[count] = {'pk': value['pk'], 'date': value['date'], 'data': name}
+                for backup in backups:
+                    file_base = File.objects.filter(backup=backup).first()
+                    name = backup.store_path[len(settings.UPLOAD_ROOT):]   # ex: "pecado2018_08_17_10_40_33"
+                    response_data[count] = {'pk': backup.pk, 'date': backup.date, 'data': name, 'path': file_base.path}
                     count += 1
+
             return JsonResponse(response_data)
         else:
             return HttpResponse('Unauthorized', status=401)
@@ -393,5 +393,35 @@ def result_backup(request, backup_id):
             backup = Backup.objects.get(user=user, pk=backup_id)
             size_dir = subprocess.check_output(['du','-sb', backup.store_path]).split()[0].decode('utf-8')
             return JsonResponse({"data_change": size_dir, "sync_time": backup.date})
+        else:
+            return HttpResponse('Unauthorized', status=401)
+
+
+# paths will be display when change date at restore form
+def get_paths(request, backup_id):
+    if request.method == 'GET':
+        user = get_user_by_token(request)
+        if user:
+            backup = Backup.objects.get(user=user, pk=backup_id)
+            paths = backup.file_set.values_list('path', flat=True)
+            # json_data = json.dumps({"paths": paths})
+            # return HttpResponse(json_data, content_type="application/json")
+            print(paths)
+            return JsonResponse({"paths": list(paths)})
+        else:
+            return HttpResponse('Unauthorized', status=401)
+
+
+# dates will be display when change path at restore form
+def get_backups(request):
+    if request.method == 'GET':
+        user = get_user_by_token(request)
+        if user:
+            path = request.GET.get('path') or ''
+            logger.debug(path)
+            files = File.objects.filter(path=path)
+            backups = Backup.objects.filter(user=user, file__in=files).values('pk', 'date')
+            print(backups)
+            return JsonResponse({"backups": list(backups)})
         else:
             return HttpResponse('Unauthorized', status=401)

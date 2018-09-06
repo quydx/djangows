@@ -25,7 +25,7 @@ def main(args, error=None):
         data = {"job_id": args.job_id, "status_code": 404, "msg": error}
     else:
         block_size = int(config['FILE']['block_size'])
-        path = args.repo_target
+        path = os.path.abspath(args.repo_target)
         data = {}
 
         # start a backup
