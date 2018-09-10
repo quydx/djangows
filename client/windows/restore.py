@@ -30,13 +30,13 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def main(args):
+def main(args, repo_target, bid):
     config = utils.get_config(args.config_file)
     server_address = config['AUTH']['server_address']
     token = config['AUTH']['token']
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
-    path = args.repo_target
-    pk = args.pk
+    path = repo_target
+    pk = bid
     block_size = int(config['FILE']['block_size'])
     key = config['CRYPTO']['key']
 
@@ -120,6 +120,17 @@ def main(args):
                 logger.info("PASS: Restore link: {} pass".format(wpath))
     else:
         logger.warn("{} - {}".format(init.text, str(init.status_code)))
+
+    result_restore = {"job_id": args.job_id, "status_code": init.status_code,
+                      "backup_id": pk, "path": wpath}
+    print(result_restore)
+
+    # Send restore result to Controller
+    ctl_address = config['CONTROLLER']['address']
+    url_result = "http://{}/api/result-restore/".format(ctl_address)
+    response = requests.request("POST", url_result, data=json.dumps(result_restore), headers=headers)
+    logger.debug("Send result to Controller: " + str(response.status_code))
+    #print(response.text)
 
 
 def init_restore(server_address, headers, pk, path):

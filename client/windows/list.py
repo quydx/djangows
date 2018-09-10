@@ -1,7 +1,6 @@
 import requests
 import logging
 import json
-
 import utils
 
 

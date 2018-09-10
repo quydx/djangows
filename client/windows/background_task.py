@@ -12,7 +12,7 @@ import utils
 
 def parse():
     parser = argparse.ArgumentParser(description="Run the Backup CLI")
-    parser.add_argument('--config-file', dest='config_file', default='client.conf',
+    parser.add_argument('-c', '--config-file', dest='config_file', default='client.conf',
                         help='Path of config file')
     args = parser.parse_args()
 
@@ -23,7 +23,7 @@ def parse():
         exit(1)
 
 def get_job():
-    threading.Timer(60, get_job).start() # repeat function every 5s
+    threading.Timer(5, get_job).start() # repeat function every 5s
     args = parse()
     config = utils.get_config(args.config_file)
     address = config['CONTROLLER']['address']
@@ -40,10 +40,17 @@ def get_job():
     response_data = json.loads(plain_data.decode())
     print(response_data)
     for job in response_data['jobs']:
-        os.system("python backcli.py -t " + job['path'] + \
-                  " -s " + job['server'] + \
-                  " --config-file " + args.config_file + \
-                  " -j " + str(job['job_id']))
+        if job['job_type'] == "backup":
+            os.system("python backcli.py -t " + job['path'] + \
+                    " -s " + job['server'] + \
+                    " -c " + args.config_file + \
+                    " -j " + str(job['job_id']))
+        elif job['job_type'] == "restore":
+            path = utils.convert_linuxtowin_path(job['path'])
+            os.system("python restorecli.py -t " + path + \
+                    " -c " + args.config_file + \
+                    " -p " + str(job['backup_id']) + \
+                    " -j " + str(job['job_id']))
 
 
 def info_agent():
@@ -61,8 +68,8 @@ def info_agent():
 
 
 def main():
-    get_job()
     info_agent()
+    get_job()
             
             
 if __name__ == '__main__':
