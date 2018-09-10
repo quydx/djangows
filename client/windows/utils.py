@@ -7,7 +7,8 @@ import logging.config
 import yaml
 import platform
 import win32security
-
+import win32con
+import win32api
 
 def setup_logging(default_path='logging.yaml', default_level=logging.INFO,
                   env_key='LOG_CFG'):
@@ -155,6 +156,13 @@ class FileDir(object):
         attr['uname'] = get_owner(self.path)   # username
         attr['gid'] = stat.st_gid            # group ID
         attr['mode'] = stat.st_mode          # inode protection mode
+
+        # Hidden file
+        attrs = win32api.GetFileAttributes(self.path)
+        if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0: # file hidden
+            attr['hidden'] = 2
+        else: 
+            attr['hidden'] = 0
 
         # ACL
         attr['acl'] = get_acl(self.path)

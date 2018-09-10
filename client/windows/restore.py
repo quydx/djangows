@@ -8,6 +8,8 @@ import logging
 import stat
 import subprocess
 from cryptography.fernet import Fernet
+import win32con
+import win32api
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -91,15 +93,17 @@ def main(args):
                 print("data_existed: ", data_existed)
                 data_need = list(get_data(server_address, response_json['url']))
                 print("data_need: ", data_need)
-                 
-                print("data_need")          
+                         
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
 
                 print("data: ", data)
                 data_sorted = sorted(data, key=lambda x: x[1])
 
-                os.chmod(wpath, stat.S_IWRITE) # file read only 
-                subprocess.check_call(["attrib","-H",wpath]) # file hidden
+                attrs = win32api.GetFileAttributes(wpath)
+                if (attrs & win32con.FILE_ATTRIBUTE_READONLY) != 0:
+                    os.chmod(wpath, stat.S_IWRITE) # file read only 
+                if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0:
+                    subprocess.check_call(["attrib","-H",wpath]) # file hidden
 
                 if data_need != []:
                     # write to file 
@@ -138,7 +142,11 @@ def add_attribute(path, attr):
     #utils.set_acl(path, ast.literal_eval(attr['acl']))
     utils.set_acl(path, attr['acl'])
 
-
+    attrs = win32api.GetFileAttributes(path)
+    if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0 and attr['hidden'] == 0:
+        subprocess.check_call(["attrib","-H",path])
+    if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) == 0 and attr['hidden'] != 0:    
+        subprocess.check_call(["attrib","+H",path])
 
 def list_block_id_existed(list_pre, list_now):
     addition_checksum = list(set(list_now) & set(list_pre))
@@ -177,7 +185,7 @@ def get_data(server_address, url_dict):
 
 
 def join_file(path, data_chunks, key):
-#    os.chmod( path, stat.S_IWRITE) # file read only 
+    os.chmod( path, stat.S_IWRITE) # file read only 
 #    subprocess.check_call(["attrib","-H",path]) # file hidden
 
     cipher_suite = Fernet(key)
