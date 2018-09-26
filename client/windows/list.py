@@ -15,15 +15,19 @@ def main(args, error=None):
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     
     list_b = list_backup(domain, headers, args.pk, args.repo_target)
+    print (list_b.status_code )
     if list_b.status_code == 200:
+        # print("status_code = 200")
         print(json.dumps(list_b.json(), indent=4, sort_keys=True))
     else:
         logger.error(list_b.text)
+        pass
     return
 
 
 def list_backup(domain, headers, pk=None, target=None):
     query = {"path": target}
+    print(target)
     if pk:
         url = "http://{}/rest/api/list/{}".format(domain, pk)
     else: 
