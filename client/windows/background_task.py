@@ -1,18 +1,19 @@
-#!C:\Program Files (x86)\Python37-32
+#!C:\env\env\Scripts\python.exe
 import threading
 import argparse
 import requests
 import os
 import json
-#import logging
 from cryptography.fernet import Fernet
 
 import utils
 
+parent = "E:\\Huyen Trang\\project\\djangows\\client\\windows\\"
+clientConf = parent + "client.conf"
 
 def parse():
     parser = argparse.ArgumentParser(description="Run the Backup CLI")
-    parser.add_argument('-c', '--config-file', dest='config_file', default='client.conf',
+    parser.add_argument('-c', '--config-file', dest='config_file', default=clientConf,
                         help='Path of config file')
     args = parser.parse_args()
 
@@ -39,15 +40,18 @@ def get_job():
     plain_data = cipher_suite.decrypt(response.text.encode())
     response_data = json.loads(plain_data.decode())
     print(response_data)
+
+    backupConf = parent + "backcli.py"
+    restoreConf = parent + "restorecli.py"
     for job in response_data['jobs']:
         if job['job_type'] == "backup":
-            os.system("python backcli.py -t " + job['path'] + \
+            os.system("python \""+ backupConf + "\" -t " + job['path'] + \
                     " -s " + job['server'] + \
                     " -c " + args.config_file + \
                     " -j " + str(job['job_id']))
         elif job['job_type'] == "restore":
             path = utils.convert_linuxtowin_path(job['path'])
-            os.system("python restorecli.py -t " + path + \
+            os.system("python "+ restoreConf + " -t " + path + \
                     " -c " + args.config_file + \
                     " -p " + str(job['backup_id']) + \
                     " -j " + str(job['job_id']))
