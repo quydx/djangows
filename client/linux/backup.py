@@ -22,7 +22,8 @@ def main(args, error=None):
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
 
     if error:
-        data = {"job_id": args.job_id, "status_code": 404, "msg": error}
+        data = {"job_id": args.job_id, "status_code": 404, "msg": error, 
+                "path": args.repo_target, "server": server_address}
     else:
         block_size = int(config['FILE']['block_size'])
         path = os.path.abspath(args.repo_target)
@@ -121,12 +122,7 @@ def send_data(server_address, block_size, token, path, blocks, file_object, chec
         cipher_suite = Fernet(key)
         files = {'block_data': cipher_suite.encrypt(chunk)}
         values = {'block_id' : block_id, 'file_object': file_object, 'checksum': checksum[count]}
-        # logger.debug(files)
-        # cipher_file = cipher_suite.encrypt(json.dumps(files).encode())
-        # logger.debug(cipher_file)
-        cipher_text = cipher_suite.encrypt(json.dumps(values).encode())
-        logger.debug(cipher_text)
-
+        # cipher_text = cipher_suite.encrypt(json.dumps(values).encode())
         logger.debug("SENDING: {} - {}".format(block_id, checksum[count]))
         count += 1
         response = requests.post(url, files=files, data=values, headers=headers)

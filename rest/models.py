@@ -83,7 +83,7 @@ class FileData(models.Model):
     file_object = models.ForeignKey('File', on_delete=models.CASCADE)
     block_id = models.IntegerField(default=0)
     checksum = models.CharField(max_length=256)
-    block_data = models.FileField(storage=upload_storage, upload_to=key_store_upload_to, blank=False, null=False)
+    block_data = models.FileField(storage=upload_storage, upload_to=key_store_upload_to, blank=False, null=False, max_length=1000)
 
     def __str__(self):
         return "{} {}".format(self.file_object, self.block_id)

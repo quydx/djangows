@@ -88,10 +88,10 @@ def main(args, error=None):
             elif value['type'] == 'symlink':
                 logger.info("PASS: Restore link: {} pass".format(value['path']))
     else:
-        logger.error("{}".format(str(init.status_code)))
+        logger.error("{} - {}".format(init.text, str(init.status_code)))
 
     result_restore = {"job_id": args.job_id, "status_code": init.status_code,
-                      "backup_id": args.backup_id}
+                      "backup_id": args.backup_id, "path": path}
 
     # Send restore result to Controller
     ctl_address = config['CONTROLLER']['address']

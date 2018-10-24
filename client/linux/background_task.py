@@ -1,5 +1,4 @@
-#!/home/locvu/backup_server/env/bin/python
-
+#!/usr/bin/python3
 import threading
 import argparse
 import requests
@@ -10,6 +9,10 @@ import logging
 from cryptography.fernet import Fernet
 
 import utils
+
+
+utils.setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def parse():
@@ -23,7 +26,6 @@ def parse():
     else:
         print("File config does not exist ")
         exit(1)
-
 
 
 def get_job():
@@ -60,8 +62,8 @@ def get_job():
 
 
 def info_agent():
-    threading.Timer(60, info_agent).start()
-    print("Send information agent")
+    # threading.Timer(60, info_agent).start()
+    logger.info("Send information agent")
     args = parse()
     config = utils.get_config(args.config_file)
     address = config['CONTROLLER']['address']
@@ -69,8 +71,7 @@ def info_agent():
     url = "http://{}/api/info-agent/".format(address)
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
     data = utils.get_info_agent()
-    response = requests.request("POST", url, data=json.dumps(data), headers=headers)
-    print(response.status_code)
+    requests.request("POST", url, data=json.dumps(data), headers=headers)
 
 
 def main():

@@ -293,7 +293,7 @@ def restore_init(request, pk=None):
                 else:
                     return HttpResponse('Path Does Not Exist', status=404)
 
-            except IndexError:
+            except (IndexError, Backup.DoesNotExist):
                 return HttpResponse('Pk Does Not Exist', status=404)
         else:
             return HttpResponse("Missing pk definite", status=412)

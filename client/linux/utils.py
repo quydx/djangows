@@ -6,7 +6,6 @@ import subprocess
 import logging.config
 import yaml
 import platform
-import psutil
 
 
 def setup_logging(default_path='conf.d/logging.yaml', default_level=logging.INFO,
