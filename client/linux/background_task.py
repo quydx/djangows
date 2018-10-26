@@ -50,12 +50,12 @@ def get_job():
     print(response_data)
     for job in response_data['jobs']:
         if job['job_type'] == "backup":
-            os.system("./backcli -t " + job['path'] + \
+            os.system("./backcli -t " + '"' + job['path'] + '"' + \
                     " -s " + job['server'] + \
                     " -c " + args.config_file + \
                     " -j " + str(job['job_id']))
         elif job['job_type'] == "restore":
-            os.system("./restorecli -t " + job['path'] + \
+            os.system("./restorecli -t " + '"' + job['path'] + '"' + \
                     " -c " + args.config_file + \
                     " -p " + str(job['backup_id']) + \
                     " -j " + str(job['job_id']))
