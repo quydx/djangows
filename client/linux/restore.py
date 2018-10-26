@@ -37,7 +37,7 @@ def main(args, error=None):
 
                 # make directory recusive 
                 if not os.path.isdir(value['path']):
-                    os.makedirs(path, exist_ok=True)
+                    os.makedirs(value['path'], exist_ok=True)
                     logger.debug("Directory {} created".format(value['path']))
 
                 # add attributes
