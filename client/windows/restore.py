@@ -158,10 +158,8 @@ def add_attribute(path, attr):
     print (attr)
     attrs = win32api.GetFileAttributes(path)
     if ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0) and (attr['hidden'] == '0'): # File hiện tại là hidden, file gôc là không hidden
-        print("file orig -hidden, file now hidden")
         subprocess.check_call(["attrib","-H",path])
     elif ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) == 0) and (attr['hidden'] != '0'): # File hiện tại không hidden, file goc hidden
-        print("heelo")
         subprocess.check_call(["attrib","+H",path])
     else:
         print("File không thay đổi thuộc tính hidden")
