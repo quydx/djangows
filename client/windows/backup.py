@@ -35,7 +35,8 @@ def main(args, repo_target, error=None):
     headers = {'Content-Type': 'application/json;', 'Authorization': token}
 
     if error:
-        data = {"job_id": args.job_id, "status_code": 404, "msg": error}
+        data = {"job_id": args.job_id, "status_code": 404, "msg": error, 
+                "path": repo_target, "server": server_address}
     else:
         block_size = int(config['FILE']['block_size'])
         path = repo_target # Path of directory need to backup

@@ -5,7 +5,7 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description="Run the Backup CLI")
-parser.add_argument('-c', '--config-file', dest='config_file', default='E:\\Huyen Trang\\project\\djangows\\client\\windows\\client.conf',
+parser.add_argument('-c', '--config-file', dest='config_file', default="E:\\Huyen Trang\\project\\djangows\\client\\windows\\client.conf",
                     help='Path of config file')
 parser.add_argument('-t', dest='repo_targets', required=True, nargs = '*',
                     help='Path of directory need to backup')

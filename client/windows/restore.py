@@ -39,6 +39,7 @@ def main(args, repo_target, bid):
     pk = bid
     block_size = int(config['FILE']['block_size'])
     key = config['CRYPTO']['key']
+    wpath = ""
 
     # start a restore
     logger.info("Start restore session")
@@ -52,7 +53,7 @@ def main(args, repo_target, bid):
             if value['type'] == 'directory':
                 # make directory recusive
                 if not os.path.isdir(wpath):
-                    os.makedirs(path, exist_ok=True)   
+                    os.makedirs(wpath, exist_ok=True)   
                     logger.debug("Directory {} created".format(wpath))
 
                 # add attributes
@@ -74,6 +75,7 @@ def main(args, repo_target, bid):
                 checksum_list = f.list_checksum()
                 need_data = {"need": need_blocks(value['checksum'], checksum_list), \
                             "path": value['path']}
+                #print (value['path'])
                 need_data_json = str(need_data).replace("'", '"')  # convert to json format
                 url = "http://{}/rest/api/download_data/{}/".format(server_address, pk)
                 
@@ -102,7 +104,7 @@ def main(args, repo_target, bid):
                 attrs = win32api.GetFileAttributes(wpath)
                 if (attrs & win32con.FILE_ATTRIBUTE_READONLY) != 0:
                     os.chmod(wpath, stat.S_IWRITE) # file read only 
-                if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0:
+                if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0: # Nếu là file hidden thì bỏ thuộc tính hidden đi để đọc file
                     subprocess.check_call(["attrib","-H",wpath]) # file hidden
 
                 if data_need != []:
@@ -153,11 +155,16 @@ def add_attribute(path, attr):
     #utils.set_acl(path, ast.literal_eval(attr['acl']))
     utils.set_acl(path, attr['acl'])
 
+    print (attr)
     attrs = win32api.GetFileAttributes(path)
-    if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0 and attr['hidden'] == 0:
+    if ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0) and (attr['hidden'] == '0'): # File hiện tại là hidden, file gôc là không hidden
+        print("file orig -hidden, file now hidden")
         subprocess.check_call(["attrib","-H",path])
-    if (attrs & win32con.FILE_ATTRIBUTE_HIDDEN) == 0 and attr['hidden'] != 0:    
+    elif ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) == 0) and (attr['hidden'] != '0'): # File hiện tại không hidden, file goc hidden
+        print("heelo")
         subprocess.check_call(["attrib","+H",path])
+    else:
+        print("File không thay đổi thuộc tính hidden")
 
 def list_block_id_existed(list_pre, list_now):
     addition_checksum = list(set(list_now) & set(list_pre))

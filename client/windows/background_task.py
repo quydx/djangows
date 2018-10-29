@@ -51,7 +51,7 @@ def get_job():
                     " -j " + str(job['job_id']))
         elif job['job_type'] == "restore":
             path = utils.convert_linuxtowin_path(job['path'])
-            os.system("python "+ restoreConf + " -t " + path + \
+            os.system("python \""+ restoreConf + "\" -t " + path + \
                     " -c " + args.config_file + \
                     " -p " + str(job['backup_id']) + \
                     " -j " + str(job['job_id']))
