@@ -8,8 +8,10 @@ from cryptography.fernet import Fernet
 
 import utils
 
-parent = "E:\\Huyen Trang\\project\\djangows\\client\\windows\\"
-clientConf = parent + "client.conf"
+parent = r"E:\\Huyen Trang\\project\\djangows\\client\\windows\\"
+clientConf = os.path.join(parent, "client.conf")
+
+print(clientConf)
 
 def parse():
     parser = argparse.ArgumentParser(description="Run the Backup CLI")
@@ -41,19 +43,22 @@ def get_job():
     response_data = json.loads(plain_data.decode())
     print(response_data)
 
-    backupConf = parent + "backcli.py"
-    restoreConf = parent + "restorecli.py"
+    backupConf = os.path.join(parent, "backcli.py")
+    restoreConf = os.path.join(parent, "restorecli.py")
+    #print (restoreConf)
+    #print (backupConf)
     for job in response_data['jobs']:
         if job['job_type'] == "backup":
-            os.system("python \""+ backupConf + "\" -t " + job['path'] + \
-                    " -s " + job['server'] + \
-                    " -c " + args.config_file + \
+            os.system("python \""+ backupConf + "\" -t \"" + job['path'] + \
+                    "\" -s " + job['server'] + \
+                   # " -c " + args.config_file + \
                     " -j " + str(job['job_id']))
         elif job['job_type'] == "restore":
             path = utils.convert_linuxtowin_path(job['path'])
-            os.system("python \""+ restoreConf + "\" -t " + path + \
-                    " -c " + args.config_file + \
-                    " -p " + str(job['backup_id']) + \
+            print (path)
+            os.system("python \""+ restoreConf + "\" -t \"" + path + \
+                    "\" -c \"" + args.config_file + \
+                    "\" -p " + str(job['backup_id']) + \
                     " -j " + str(job['job_id']))
 
 
