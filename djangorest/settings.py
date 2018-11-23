@@ -127,13 +127,13 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
+STATIC_ROOT = os.path.join(BASE_DIR,'static/')
 STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/locvu/backup/'
 
 # Absolutized path for storage data
-UPLOAD_ROOT = '/home/locvu/backup/'
+UPLOAD_ROOT = '/data'
 
 MIN_CAPACITY = 1  # GB
 
