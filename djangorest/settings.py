@@ -83,7 +83,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS': {},
-        'NAME': 'backup_core',
+        'NAME': 'backup_core2',
         'USER': 'root',
         'PASSWORD': 'password',
         'HOST': 'localhost'

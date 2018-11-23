@@ -10,7 +10,7 @@ parser.add_argument('-c', '--config-file', dest='config_file', default='conf.d/c
 parser.add_argument('-t', '--target', dest='repo_target',
                     help='Path of directory need to backup')
 parser.add_argument('-s', '--server', dest='server_address',
-                    help='Server backup')             
+                    help='Server backup')
 parser.add_argument('-p', '--pk', dest='backup_id', required=True,
                     help='Primary key need to backup')
 parser.add_argument('-j', dest='job_id', default=None,
