@@ -32,7 +32,7 @@ def get_job():
     '''
     Get backup and restore job from controller node
     '''
-    threading.Timer(5, get_job).start()
+    threading.Timer(config['CONTROLLER']['duration_timer'], get_job).start()
     args = parse()
     config = utils.get_config(args.config_file)
     address = config['CONTROLLER']['address']
