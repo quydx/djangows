@@ -30,8 +30,9 @@ def main(args, error=None):
     data = {}
     
     if init.status_code == 200:
+        init_values = list(init.json().values())
         if path == None:
-            path = init.json().values()['path']
+            path = init_values[0]['path']
         # logger.debug(json.dumps(init.json(), indent=4))
         for value in init.json().values():
             logger.info("Restore: {}".format(value['path']))
