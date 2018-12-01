@@ -28,8 +28,10 @@ def main(args, error=None):
     logger.info("Start restore session")
     init = init_restore(domain, headers, backup_id, path)
     data = {}
-
+    
     if init.status_code == 200:
+        if path == None:
+            path = init.json().values()['path']
         # logger.debug(json.dumps(init.json(), indent=4))
         for value in init.json().values():
             logger.info("Restore: {}".format(value['path']))
@@ -88,6 +90,8 @@ def main(args, error=None):
             elif value['type'] == 'symlink':
                 logger.info("PASS: Restore link: {} pass".format(value['path']))
     else:
+        if path == None:
+            path = "None"
         logger.error("{} - {}".format(init.text, str(init.status_code)))
 
     result_restore = {"job_id": args.job_id, "status_code": init.status_code,
