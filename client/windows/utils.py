@@ -10,6 +10,8 @@ import win32security
 import win32con
 import win32api
 
+PATH = "G:\\"
+
 def setup_logging(default_path='logging.yaml', default_level=logging.INFO,
                   env_key='LOG_CFG'):
     """
@@ -33,7 +35,7 @@ def get_acl(path):
     Returns list added rules
     """
     
-    aclfile = "aclfile.txt"
+    aclfile = PATH + "aclfile.txt"
     output = subprocess.check_output(['icacls', path, "/save", aclfile])
     acl_rules = open(aclfile, 'rb').read()
     os.remove(aclfile)
@@ -47,7 +49,7 @@ def set_acl(path, acl_rules):
     """
 
     acl = acl_rules.encode()
-    aclfile = "aclfile.txt"
+    aclfile = PATH + "aclfile.txt"
     open(aclfile, 'wb').write(acl)
     path_root = os.path.dirname(os.path.abspath(path))
     output = subprocess.check_output(['icacls', path_root, "/restore", aclfile])

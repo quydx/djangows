@@ -92,13 +92,13 @@ def main(args, repo_target, bid):
                 print("checksum:", value['checksum'])
                 data_existed = list(utils.read_in_blocks(file_read, \
                             list_block_id_existed(value['checksum'], checksum_list), block_size))
-                print("data_existed: ", data_existed)
+                #print("data_existed: ", data_existed)
                 data_need = list(get_data(server_address, response_json['url']))
                 print("data_need: ", data_need)
                          
                 data = data_existed + data_need  # list tuple [(data, block_id), (), ()]
 
-                print("data: ", data)
+                #print("data: ", data)
                 data_sorted = sorted(data, key=lambda x: x[1])
 
                 attrs = win32api.GetFileAttributes(wpath)
@@ -155,14 +155,15 @@ def add_attribute(path, attr):
     #utils.set_acl(path, ast.literal_eval(attr['acl']))
     utils.set_acl(path, attr['acl'])
 
-    print (attr)
+    #print (attr)
     attrs = win32api.GetFileAttributes(path)
     if ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) != 0) and (attr['hidden'] == '0'): # File hiện tại là hidden, file gôc là không hidden
         subprocess.check_call(["attrib","-H",path])
     elif ((attrs & win32con.FILE_ATTRIBUTE_HIDDEN) == 0) and (attr['hidden'] != '0'): # File hiện tại không hidden, file goc hidden
         subprocess.check_call(["attrib","+H",path])
     else:
-        print("File không thay đổi thuộc tính hidden")
+        #print("File không thay đổi thuộc tính hidden")
+        pass
 
 def list_block_id_existed(list_pre, list_now):
     addition_checksum = list(set(list_now) & set(list_pre))

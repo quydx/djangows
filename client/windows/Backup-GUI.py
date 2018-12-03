@@ -7,7 +7,12 @@ from tkinter.ttk import Notebook
 
 def backup():
 	path = "E:\\Huyen Trang\\project\\djangows\\client\\windows\\backcli.py"
-	command = "python \"" + path + "\" -t " + file_name.get() + " -s " + server_name.get()
+	print(type(server_name.get()))
+	if server_name.get():
+		command = "python \"" + path + "\" -t \"" + file_name.get() + "\" -s " + server_name.get()
+	else:
+		command = "python \"" + path + "\" -t \"" + file_name.get() + "\""
+
 	process = sub.Popen(shlex.split(command), stdout=sub.PIPE, stderr=sub.PIPE).communicate()
 
 
@@ -18,15 +23,15 @@ def backup():
 def restore():
 	path = "E:\\Huyen Trang\\project\\djangows\\client\\windows\\restorecli.py"
 	if restore_file.get() and backup_id.get():
-		command = "python \"" + path + "\" -t " + restore_file.get() + " -p " + backup_id.get()
-		sub.Popen(shlex.split(command))
+		command = "python \"" + path + "\" -t \"" + restore_file.get() + "\" -p " + backup_id.get()
+		# sub.Popen(shlex.split(command))
 	else:
 		pass
 
-	# process = sub.Popen(shlex.split(command), stdout=sub.PIPE, stderr=sub.PIPE).communicate()
-	# print(process)
-	# list2.insert(END, process[0])
-	# list2.insert(END, process[1])
+	process = sub.Popen(shlex.split(command), stdout=sub.PIPE, stderr=sub.PIPE).communicate()
+	#print(process)
+	list2.insert(END, process[0])
+	list2.insert(END, process[1])
 
 
 
@@ -38,10 +43,10 @@ def listcli():
 		command = "python \"" + path + "\""
 	elif not restore_file.get():
 		command = "python \"" + path + "\" -p " + backup_id.get()
-	elif not backup_id:
-		command = "python \"" + path + "\" -t " + restore_file.get()
+	elif not backup_id.get():
+		command = "python \"" + path + "\" -t \"" + restore_file.get() + "\""
 	else:
-		command = "python \"" + path + "\" -t " + restore_file.get() + " -p " + backup_id.get()
+		command = "python \"" + path + "\" -t \"" + restore_file.get() + "\" -p " + backup_id.get()
 	
 	process = sub.Popen(shlex.split(command), stdout=sub.PIPE, stderr=sub.PIPE).communicate()
 
@@ -78,10 +83,10 @@ l2.grid(row = 1, column = 1)
 l3=Label(tabs["Backup"], text="Server")
 l3.grid(row = 2, column = 1)
 
-l4=Label(tabs["Backup"], text="G:\\\\test.txt")
+l4=Label(tabs["Backup"], text="G:\\\\test_backup.txt")
 l4.grid(row = 1, column = 3, padx=5)
 
-l5=Label(tabs["Backup"], text="192.168.20.51")
+l5=Label(tabs["Backup"], text="192.168.20.51:8080")
 l5.grid(row = 2, column = 3, padx=5)
 
 l6=Label(tabs["Backup"], text="Output")
@@ -89,16 +94,16 @@ l6.grid(row = 3, column = 1)
 
 
 file_name=StringVar()
-e1=Entry(tabs["Backup"], textvariable=file_name, width=30)
+e1=Entry(tabs["Backup"], textvariable=file_name, width=34)
 e1.grid(row=1, column=2, padx=2, pady=2)
 
 server_name=StringVar()
-e1=Entry(tabs["Backup"], textvariable=server_name, width=30)
+e1=Entry(tabs["Backup"], textvariable=server_name, width=34)
 e1.grid(row=2, column=2, padx=2, pady=2)
 
 #define Listbox
 #list1=Text(window, height=6, width=41, wrap=WORD)
-list1=Text(tabs["Backup"], height=10, width=35, wrap=NONE)
+list1=Text(tabs["Backup"], height=20, width=40, wrap=NONE)
 list1.grid(row=3, column=2, columnspan=2, padx=5, pady=5)
 
 # Atach Scrollbar to the list
@@ -130,25 +135,25 @@ R2.grid(row = 1, column = 1)
 R3=Label(tabs["Restore"], text="Backup ID")
 R3.grid(row = 2, column = 1)
 
-R5=Label(tabs["Restore"], text="List Version")
+R5=Label(tabs["Restore"], text="Output")
 R5.grid(row = 3, column = 1)
 
-R6=Label(tabs["Restore"], text="G/test.txt")
+R6=Label(tabs["Restore"], text="G:\\\\test_backup.txt")
 R6.grid(row = 1, column = 3)
 
 R7=Label(tabs["Restore"], text="13")
 R7.grid(row = 2, column = 3)
 
 restore_file=StringVar()
-r1=Entry(tabs["Restore"], textvariable=restore_file, width=30)
+r1=Entry(tabs["Restore"], textvariable=restore_file, width=35)
 r1.grid(row=1, column=2, padx=2, pady=2)
 
 backup_id=StringVar()
-r1=Entry(tabs["Restore"], textvariable=backup_id, width=30)
+r1=Entry(tabs["Restore"], textvariable=backup_id, width=35)
 r1.grid(row=2, column=2, padx=2, pady=2)
 
 
-list2=Text(tabs["Restore"], height=10, width=30, wrap=NONE)
+list2=Text(tabs["Restore"], height=20, width=40, wrap=NONE)
 list2.grid(row=3, column=2, columnspan=2, padx=5, pady=5)
 
 # Atach Scrollbar to the list
